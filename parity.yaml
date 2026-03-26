@@ -1,0 +1,14 @@
+# Coverage file(s): string or array; first existing file is used (Clover XML only)
+coverage_xml: [clover.xml, coverage.xml]
+# Per-file coverage minimum (each source file must meet this %)
+min_coverage: 90
+# Overall project coverage minimum
+min_coverage_global: 100
+
+structure:
+  - name: "Unit Actions"
+    source_path: "app/Actions"
+    test_path: "tests/Unit/Actions"
+    enforce_attribute: 'PHPUnit\Framework\Attributes\CoversClass'
+    # Optional: override per-file minimum for this structure
+    # min_coverage: 90

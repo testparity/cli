@@ -1,0 +1,24 @@
+Parity is a static analysis tool for PHP/Laravel projects that enforces structural
+alignment between source code and tests without running the test suite.
+
+It answers three questions for every source file:
+
+  1. Does a matching test file exist?
+  2. Does that test declare the correct CoversClass attribute?
+  3. Does the file meet the required code coverage threshold?
+
+Configuration lives in parity.yaml at the project root. Each "structure" entry
+maps a source directory to a test directory (e.g. app/Services -> tests/Unit/Services).
+Parity derives the expected test filename from the source filename (Foo.php -> FooTest.php).
+When the naming convention doesn't hold, a file_map overrides individual mappings.
+
+Coverage data comes from PHPUnit's --coverage-xml (directory) or --coverage-clover
+(single file). Parity reads these reports — it never executes tests itself.
+
+Output is a per-file table per structure, plus a summary table showing global coverage,
+per-file average, and per-file minimum against configured thresholds.
+
+Usage:
+  parity check              Run all checks
+  parity check --show-tests Show covering test names (PHPUnit XML only)
+  parity init               Generate a starter parity.yaml
