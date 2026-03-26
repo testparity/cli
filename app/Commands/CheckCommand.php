@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Services\CoverageLinkers\CoverageLinkerRegistry;
 use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
@@ -17,7 +18,7 @@ class CheckCommand extends Command
     protected $signature = 'check
         {--show-tests : Show test names that cover each file in the table (PHPUnit XML only; default is count only)}';
 
-    protected $description = 'Check structural parity (CoversClass) and code coverage per file; does not run tests';
+    protected $description = 'Check structural parity (coverage links via CoversClass or Pest covers()) and code coverage per file; does not run tests';
 
     public function handle(NamespaceHelper $namespaceHelper): int
     {
@@ -112,10 +113,26 @@ class CheckCommand extends Command
             $name = $entry['name'] ?? 'Unnamed';
             $sourcePath = $entry['source_path'] ?? '';
             $testPath = $entry['test_path'] ?? '';
-            $enforceAttribute = $entry['enforce_attribute'] ?? 'PHPUnit\Framework\Attributes\CoversClass';
             $minCoverage = isset($entry['min_coverage']) ? (float) $entry['min_coverage'] : $minCoverageDefault;
             $minMatchedCoverage = isset($entry['min_matched_coverage']) ? (float) $entry['min_matched_coverage'] : $minMatchedCoverageDefault;
             $fileMap = isset($entry['file_map']) && is_array($entry['file_map']) ? $entry['file_map'] : [];
+
+            // Resolve coverage link enforcement strategy
+            $enforceCoverageLink = $entry['enforce_coverage_link'] ?? null;
+            $enforceAttribute = $entry['enforce_attribute'] ?? null;
+            $linkerNames = isset($entry['linkers']) && is_array($entry['linkers']) ? $entry['linkers'] : null;
+
+            // Build the linker registry for this structure
+            if ($enforceCoverageLink === true || $enforceCoverageLink === 'true') {
+                $attributeFqcn = is_string($enforceAttribute) ? $enforceAttribute : 'PHPUnit\Framework\Attributes\CoversClass';
+                $registry = CoverageLinkerRegistry::fromConfig($linkerNames, $attributeFqcn);
+            } elseif (is_string($enforceAttribute)) {
+                // Legacy mode: enforce_attribute only → use full registry for backward compat
+                $registry = CoverageLinkerRegistry::fromConfig(null, $enforceAttribute);
+            } else {
+                // Default: enforce with default attribute
+                $registry = CoverageLinkerRegistry::fromConfig(null);
+            }
 
             $sourceDir = $projectRoot . '/' . trim($sourcePath, '/');
 
@@ -153,10 +170,10 @@ class CheckCommand extends Command
                 $attributeValid = false;
 
                 if ($testExists) {
-                    $result = $checker->validateTestAttribute(
+                    $result = $checker->validateCoverageLink(
                         $testAbsolute,
                         $expectedSourceFqcn,
-                        $enforceAttribute
+                        $registry
                     );
                     $attributeValid = $result['valid'];
                 }
@@ -226,7 +243,7 @@ class CheckCommand extends Command
 
             if ($structureRows !== []) {
                 $this->newLine();
-                $headers = ['Source', 'Test', '∃', 'Attr', 'Cov', 'OK'];
+                $headers = ['Source', 'Test', '∃', 'Link', 'Cov', 'OK'];
                 if ($isPhpUnitXml) {
                     array_splice($headers, 5, 0, ['Match']);
                     $headers[] = $showTestNames ? 'Covered by' : '#';
