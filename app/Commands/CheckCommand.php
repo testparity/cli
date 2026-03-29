@@ -21,20 +21,28 @@ use Symfony\Component\Yaml\Yaml;
 class CheckCommand extends Command
 {
     protected $signature = 'check
-        {--show-tests : Show test names that cover each file in the table (PHPUnit XML only; default is count only)}';
+        {--show-tests : Show test names that cover each file in the table (PHPUnit XML only; default is count only)}
+        {--format=table : Output format: table (default) or json}
+        {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
     protected $description = 'Check structural parity and code coverage per file using pluggable rules; does not run tests';
 
     public function handle(RuleRegistry $ruleRegistry): int
     {
-        $projectRoot = $this->resolveProjectRoot();
+        $configOption = $this->option('config');
+        $projectRoot = $configOption
+            ? $this->resolveProjectRootFromConfig((string) $configOption)
+            : $this->resolveProjectRoot();
+
         if ($projectRoot === null) {
-            $this->error('parity.yaml not found. Run from project root or place parity.yaml there.');
+            $this->error('parity.yaml not found. Run from project root, place parity.yaml there, or use --config=path.');
 
             return self::FAILURE;
         }
 
-        $configPath = $projectRoot . '/parity.yaml';
+        $configPath = $configOption
+            ? (realpath((string) $configOption) ?: (string) $configOption)
+            : $projectRoot . '/parity.yaml';
         $config = $this->loadConfig($configPath);
         if ($config === null) {
             return self::FAILURE;
@@ -43,6 +51,7 @@ class CheckCommand extends Command
         // ── Settings ───────────────────────────────────────────────
         $settings = Settings::fromConfig($config);
         $namespaceHelper = new NamespaceHelper(settings: $settings);
+        $isJson = $this->option('format') === 'json';
 
         // ── Coverage data ──────────────────────────────────────────
         $coverageData = $this->loadCoverageData($settings, $projectRoot);
@@ -59,7 +68,7 @@ class CheckCommand extends Command
 
         // ── Global coverage check ─────────────────────────────────
         $minCoverageGlobal = $settings->minCoverageGlobal;
-        if ($minCoverageGlobal !== null && $globalPercent !== null) {
+        if (! $isJson && $minCoverageGlobal !== null && $globalPercent !== null) {
             if ($globalPercent >= $minCoverageGlobal) {
                 $this->info("Global coverage: {$globalPercent}% (minimum: {$minCoverageGlobal}%).");
             } else {
@@ -80,6 +89,12 @@ class CheckCommand extends Command
         $hasFailure = $globalPercent !== null && $minCoverageGlobal !== null && $globalPercent < $minCoverageGlobal;
         $expectedTestPaths = [];
         $allFileCoverages = [];
+        $jsonReport = [
+            'passed' => true,
+            'global_coverage' => $globalPercent,
+            'min_coverage_global' => $minCoverageGlobal,
+            'structures' => [],
+        ];
 
         foreach ($structures as $entry) {
             $name = $entry['name'] ?? 'Unnamed';
@@ -96,9 +111,13 @@ class CheckCommand extends Command
                 continue;
             }
 
-            $this->title("Structure: {$name}");
-            $this->line("  <fg=gray>Source: {$sourcePath}</>");
-            $this->line("  <fg=gray>Tests:  {$testPath}</>");
+            $jsonStructureFiles = [];
+
+            if (! $isJson) {
+                $this->title("Structure: {$name}");
+                $this->line("  <fg=gray>Source: {$sourcePath}</>");
+                $this->line("  <fg=gray>Tests:  {$testPath}</>");
+            }
 
             $phpFiles = File::allFiles($sourceDir);
             $phpFiles = array_filter($phpFiles, fn ($f) => str_ends_with($f->getFilename(), $settings->sourceExtension));
@@ -173,19 +192,53 @@ class CheckCommand extends Command
                     'ruleResults' => $ruleResults,
                     'allPassed' => $allPassed,
                 ];
+
+                // Collect JSON data
+                $jsonFileEntry = [
+                    'source' => $fullSourceRelative,
+                    'test' => $expectedTestRelative,
+                    'passed' => $allPassed,
+                    'rules' => [],
+                ];
+                foreach ($ruleResults as $rr) {
+                    $jsonFileEntry['rules'][$rr['rule']->name()] = [
+                        'passed' => $rr['result']->passed,
+                        'value' => $rr['result']->value,
+                        'error' => $rr['result']->error,
+                    ];
+                }
+                $jsonStructureFiles[] = $jsonFileEntry;
             }
 
-            // Build dynamic table
-            $tableRows = $this->buildDynamicTableRows($fileRows, $resolvedRules);
-            if ($tableRows !== []) {
-                $this->newLine();
-                $headers = $this->buildDynamicHeaders($resolvedRules);
-                $this->table($headers, $tableRows);
-                $this->newLine();
+            $jsonReport['structures'][] = [
+                'name' => $name,
+                'source_path' => $sourcePath,
+                'test_path' => $testPath,
+                'files' => $jsonStructureFiles,
+            ];
+
+            // Build dynamic table (skip in JSON mode)
+            if (! $isJson) {
+                $tableRows = $this->buildDynamicTableRows($fileRows, $resolvedRules);
+                if ($tableRows !== []) {
+                    $this->newLine();
+                    $headers = $this->buildDynamicHeaders($resolvedRules);
+                    $this->table($headers, $tableRows);
+                    $this->newLine();
+                }
             }
         }
 
-        // ── Summary ────────────────────────────────────────────────
+        $jsonReport['passed'] = ! $hasFailure;
+
+        // ── Output ────────────────────────────────────────────────
+        if ($isJson) {
+            $this->line(json_encode($jsonReport, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+            return $hasFailure ? self::FAILURE : self::SUCCESS;
+        }
+
+        // ── Summary (table mode) ──────────────────────────────────
         $minCoverageDefault = $settings->minCoverage;
         $minMatchedCoverageDefault = $settings->minMatchedCoverage;
         $perFileMin = $allFileCoverages !== [] ? min($allFileCoverages) : null;
@@ -538,6 +591,16 @@ class CheckCommand extends Command
         }
 
         return realpath($cwd) ?: $cwd;
+    }
+
+    protected function resolveProjectRootFromConfig(string $configPath): ?string
+    {
+        $resolved = realpath($configPath);
+        if ($resolved === false || ! is_file($resolved)) {
+            return null;
+        }
+
+        return dirname($resolved);
     }
 
     protected function loadConfig(string $configPath): ?array
