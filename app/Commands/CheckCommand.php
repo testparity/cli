@@ -13,6 +13,7 @@ use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
 use App\Services\PhpUnitXmlCoverageReader;
+use App\Services\PluginLoader;
 use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
@@ -52,6 +53,15 @@ class CheckCommand extends Command
         $settings = Settings::fromConfig($config);
         $namespaceHelper = new NamespaceHelper(settings: $settings);
         $isJson = $this->option('format') === 'json';
+
+        // ── Plugins ──────────────────────────────────────────────
+        $pluginLoader = new PluginLoader;
+        $pluginLoader->loadAll($ruleRegistry, $projectRoot);
+        if (! $isJson) {
+            foreach ($pluginLoader->getWarnings() as $warning) {
+                $this->warn("Plugin: {$warning}");
+            }
+        }
 
         // ── Coverage data ──────────────────────────────────────────
         $coverageData = $this->loadCoverageData($settings, $projectRoot);
