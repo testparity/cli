@@ -22,5 +22,11 @@ class RuleContext
         public readonly ?float $matchedCoveragePercent,
         public readonly array $coveringTests,
         public readonly string $projectRoot,
+        /** Expected test class name (e.g. "FooServiceTest") for matching */
+        public readonly string $expectedTestClassName = '',
+        /** Per-line coverage data: [lineNum => [testName, ...]] (PHPUnit XML only) */
+        public readonly array $lineCoverage = [],
+        /** Total executable lines for the source file */
+        public readonly int $totalExecutableLines = 0,
     ) {}
 }

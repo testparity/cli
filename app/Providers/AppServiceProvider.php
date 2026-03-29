@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Rules\CoverageAttributionRule;
 use App\Rules\EnforceCoverageLinkRule;
+use App\Rules\MatchedCoverageRule;
 use App\Rules\MinimumCoverageRule;
 use App\Rules\RuleRegistry;
 use App\Rules\TestExistsRule;
@@ -30,13 +32,15 @@ class AppServiceProvider extends ServiceProvider
             $registry->register(new TestExistsRule);
             $registry->register(new MinimumCoverageRule);
             $registry->register(new EnforceCoverageLinkRule);
+            $registry->register(new MatchedCoverageRule);
+            $registry->register(new CoverageAttributionRule);
 
             return $registry;
         });
 
         // Convenience bindings so rules can be resolved individually
-        $this->app->bind('parity.rules.test-exists', fn () => app(RuleRegistry::class)->get('test-exists'));
-        $this->app->bind('parity.rules.minimum-coverage', fn () => app(RuleRegistry::class)->get('minimum-coverage'));
-        $this->app->bind('parity.rules.enforce-coverage-link', fn () => app(RuleRegistry::class)->get('enforce-coverage-link'));
+        foreach (['test-exists', 'minimum-coverage', 'enforce-coverage-link', 'matched-coverage', 'coverage-attribution'] as $name) {
+            $this->app->bind("parity.rules.{$name}", fn () => app(RuleRegistry::class)->get($name));
+        }
     }
 }

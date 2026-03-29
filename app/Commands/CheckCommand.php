@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Rules\CoverageAttributionRule;
 use App\Rules\RuleContext;
 use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
@@ -87,7 +88,7 @@ class CheckCommand extends Command
             $fileMap = isset($entry['file_map']) && is_array($entry['file_map']) ? $entry['file_map'] : [];
 
             // Resolve rules for this structure
-            $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry);
+            $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $isPhpUnitXml);
 
             $sourceDir = $projectRoot . '/' . trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
@@ -121,27 +122,11 @@ class CheckCommand extends Command
                 $coveragePercent = $coverageMap[$normalizedSource] ?? $coverageMap[$fullSourceRelative] ?? 0.0;
                 $coveringTests = $testsByFile[$normalizedSource] ?? $testsByFile[$fullSourceRelative] ?? [];
 
-                // Compute matched coverage
                 $expectedTestClass = pathinfo($expectedTestRelative, PATHINFO_FILENAME);
-                $matchedCoveragePercent = null;
-                if ($isPhpUnitXml && $testExists) {
-                    $perLine = $lineCoverage[$normalizedSource] ?? $lineCoverage[$fullSourceRelative] ?? [];
-                    $executable = $totalExecutable[$normalizedSource] ?? $totalExecutable[$fullSourceRelative] ?? 0;
-                    if ($executable > 0 && $expectedTestClass !== '') {
-                        $linesCoveredByMatch = 0;
-                        foreach ($perLine as $lineTests) {
-                            foreach ($lineTests as $testName) {
-                                if (str_contains($testName, $expectedTestClass)) {
-                                    $linesCoveredByMatch++;
-                                    break;
-                                }
-                            }
-                        }
-                        $matchedCoveragePercent = round(100.0 * $linesCoveredByMatch / $executable, 2);
-                    }
-                }
+                $perLine = $lineCoverage[$normalizedSource] ?? $lineCoverage[$fullSourceRelative] ?? [];
+                $executable = $totalExecutable[$normalizedSource] ?? $totalExecutable[$fullSourceRelative] ?? 0;
 
-                // Build rule context
+                // Build rule context with all available data
                 $context = new RuleContext(
                     sourceAbsolutePath: $normalizedSource,
                     sourceRelativePath: $fullSourceRelative,
@@ -151,9 +136,12 @@ class CheckCommand extends Command
                     testExists: $testExists,
                     testContent: $testContent,
                     coveragePercent: $coveragePercent,
-                    matchedCoveragePercent: $matchedCoveragePercent,
+                    matchedCoveragePercent: null,
                     coveringTests: $coveringTests,
                     projectRoot: $projectRoot,
+                    expectedTestClassName: $expectedTestClass,
+                    lineCoverage: $perLine,
+                    totalExecutableLines: $executable,
                 );
 
                 // Evaluate all rules
@@ -173,10 +161,6 @@ class CheckCommand extends Command
                     $hasFailure = true;
                 }
 
-                $otherTests = $expectedTestClass !== ''
-                    ? array_values(array_filter($coveringTests, fn (string $t): bool => ! str_contains($t, $expectedTestClass)))
-                    : $coveringTests;
-
                 $expectedTestPaths[$expectedTestRelative] = true;
                 $allFileCoverages[] = $coveragePercent;
 
@@ -188,17 +172,14 @@ class CheckCommand extends Command
                     'relativeTest' => $relativeTest,
                     'ruleResults' => $ruleResults,
                     'allPassed' => $allPassed,
-                    'coveringTests' => $coveringTests,
-                    'otherTests' => $otherTests,
-                    'matchedCoveragePercent' => $matchedCoveragePercent,
                 ];
             }
 
             // Build dynamic table
-            $tableRows = $this->buildDynamicTableRows($fileRows, $resolvedRules, $isPhpUnitXml, $showTestNames);
+            $tableRows = $this->buildDynamicTableRows($fileRows, $resolvedRules);
             if ($tableRows !== []) {
                 $this->newLine();
-                $headers = $this->buildDynamicHeaders($resolvedRules, $isPhpUnitXml, $showTestNames);
+                $headers = $this->buildDynamicHeaders($resolvedRules);
                 $this->table($headers, $tableRows);
                 $this->newLine();
             }
@@ -240,22 +221,29 @@ class CheckCommand extends Command
      *   - New format: rules: [{ minimum-coverage: { min: 80 } }, 'enforce-coverage-link']
      *   - Legacy format: enforce_attribute / enforce_coverage_link + min_coverage
      */
-    private function resolveStructureRules(array $entry, Settings $settings, RuleRegistry $registry): array
+    private function resolveStructureRules(array $entry, Settings $settings, RuleRegistry $registry, bool $isPhpUnitXml = false): array
     {
         // New format: explicit rules array
         if (isset($entry['rules']) && is_array($entry['rules'])) {
-            // Always prepend test-exists (implicit)
             $ruleConfigs = $entry['rules'];
-            $hasTestExists = false;
-            foreach ($ruleConfigs as $rc) {
-                $name = is_string($rc) ? $rc : (isset($rc['name']) ? $rc['name'] : array_key_first($rc));
-                if ($name === 'test-exists') {
-                    $hasTestExists = true;
-                    break;
-                }
-            }
-            if (! $hasTestExists) {
+
+            // Auto-prepend test-exists if not present
+            $ruleNames = array_map(function ($rc) {
+                return is_string($rc) ? $rc : (isset($rc['name']) ? $rc['name'] : array_key_first($rc));
+            }, $ruleConfigs);
+
+            if (! in_array('test-exists', $ruleNames, true)) {
                 array_unshift($ruleConfigs, 'test-exists');
+            }
+
+            // Auto-append PHPUnit XML rules if available and not explicitly listed
+            if ($isPhpUnitXml) {
+                if (! in_array('matched-coverage', $ruleNames, true)) {
+                    $ruleConfigs[] = 'matched-coverage';
+                }
+                if (! in_array('coverage-attribution', $ruleNames, true)) {
+                    $ruleConfigs[] = 'coverage-attribution';
+                }
             }
 
             return $registry->resolve($ruleConfigs);
@@ -289,6 +277,16 @@ class CheckCommand extends Command
             : $settings->minCoverage;
         $ruleConfigs[] = ['minimum-coverage' => ['min' => $minCoverage]];
 
+        // PHPUnit XML coverage extras (legacy auto-add)
+        if ($isPhpUnitXml) {
+            $matchedMin = isset($entry['min_matched_coverage'])
+                ? (float) $entry['min_matched_coverage']
+                : ($settings->minMatchedCoverage !== null ? $settings->minMatchedCoverage : null);
+            $matchedParams = $matchedMin !== null ? ['min' => $matchedMin] : [];
+            $ruleConfigs[] = $matchedParams !== [] ? ['matched-coverage' => $matchedParams] : 'matched-coverage';
+            $ruleConfigs[] = 'coverage-attribution';
+        }
+
         return $registry->resolve($ruleConfigs);
     }
 
@@ -297,7 +295,7 @@ class CheckCommand extends Command
     /**
      * Build headers dynamically from resolved rules.
      */
-    private function buildDynamicHeaders(array $resolvedRules, bool $isPhpUnitXml, bool $showTestNames): array
+    private function buildDynamicHeaders(array $resolvedRules): array
     {
         $headers = ['Source', 'Test'];
 
@@ -305,16 +303,14 @@ class CheckCommand extends Command
             $header = $resolved['rule']->columnHeader();
             if ($header !== null) {
                 $headers[] = $header;
+                // CoverageAttributionRule adds a second "Other" column
+                if ($resolved['rule'] instanceof CoverageAttributionRule) {
+                    $headers[] = 'Other';
+                }
             }
         }
 
         $headers[] = 'OK';
-
-        if ($isPhpUnitXml) {
-            $headers[] = 'Match';
-            $headers[] = $showTestNames ? 'Covered by' : '#';
-            $headers[] = $showTestNames ? 'Other (non-matching)' : 'Other';
-        }
 
         return $headers;
     }
@@ -322,7 +318,7 @@ class CheckCommand extends Command
     /**
      * Build table rows dynamically from rule results.
      */
-    private function buildDynamicTableRows(array $fileRows, array $resolvedRules, bool $isPhpUnitXml, bool $showTestNames): array
+    private function buildDynamicTableRows(array $fileRows, array $resolvedRules): array
     {
         if ($fileRows === []) {
             return [];
@@ -330,11 +326,14 @@ class CheckCommand extends Command
 
         usort($fileRows, fn (array $a, array $b) => strcmp($a['relativeSource'], $b['relativeSource']));
 
-        // Count how many rule columns there are
+        // Count total columns from rules (including extra CoverageAttribution column)
         $ruleColumnCount = 0;
         foreach ($resolvedRules as $resolved) {
             if ($resolved['rule']->columnHeader() !== null) {
                 $ruleColumnCount++;
+                if ($resolved['rule'] instanceof CoverageAttributionRule) {
+                    $ruleColumnCount++;
+                }
             }
         }
 
@@ -356,11 +355,6 @@ class CheckCommand extends Command
                     $dirRow[] = sprintf($gray, '-');
                 }
                 $dirRow[] = sprintf($gray, '-'); // OK column
-                if ($isPhpUnitXml) {
-                    $dirRow[] = sprintf($gray, '-');
-                    $dirRow[] = sprintf($gray, '-');
-                    $dirRow[] = sprintf($gray, '-');
-                }
                 $rows[] = $dirRow;
             }
             if ($dir === '.') {
@@ -378,18 +372,15 @@ class CheckCommand extends Command
                 $rule = $rr['rule'];
                 if ($rule->columnHeader() !== null) {
                     $tableRow[] = $rule->formatCell($rr['result']);
+                    // CoverageAttributionRule adds a second "Other" column
+                    if ($rule instanceof CoverageAttributionRule) {
+                        $tableRow[] = $rule->formatOtherCell($rr['result']);
+                    }
                 }
             }
 
             // OK column
             $tableRow[] = $row['allPassed'] ? '<fg=green>Y</>' : '<fg=red>N</>';
-
-            // PHPUnit XML extra columns
-            if ($isPhpUnitXml) {
-                $tableRow[] = $this->styleMatch($row['matchedCoveragePercent'] ?? null);
-                $tableRow[] = $this->formatCoveringTests($row['coveringTests'], $showTestNames);
-                $tableRow[] = $this->formatOtherTests($row['otherTests'], $showTestNames);
-            }
 
             $rows[] = $tableRow;
         }
@@ -447,56 +438,6 @@ class CheckCommand extends Command
         }
 
         return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'isPhpUnitXml');
-    }
-
-    // ── Formatting helpers ─────────────────────────────────────────
-
-    private function styleMatch(?float $percent): string
-    {
-        if ($percent === null) {
-            return '<fg=gray>-</>';
-        }
-
-        return $percent . '%';
-    }
-
-    private function formatCoveringTests(array $coveringTests, bool $showNames = false): string
-    {
-        if ($coveringTests === []) {
-            return '<fg=gray>-</>';
-        }
-        if (! $showNames) {
-            return (string) count($coveringTests);
-        }
-        $maxShow = 3;
-        $shown = array_slice($coveringTests, 0, $maxShow);
-        $text = implode(', ', $shown);
-        $rest = count($coveringTests) - $maxShow;
-        if ($rest > 0) {
-            $text .= ' <fg=gray>(+' . $rest . ')</>';
-        }
-
-        return $text;
-    }
-
-    private function formatOtherTests(array $otherTests, bool $showNames = false): string
-    {
-        if ($otherTests === []) {
-            return '<fg=gray>-</>';
-        }
-        $n = count($otherTests);
-        if (! $showNames) {
-            return '<fg=yellow>' . $n . '</>';
-        }
-        $maxShow = 3;
-        $shown = array_slice($otherTests, 0, $maxShow);
-        $text = implode(', ', $shown);
-        $rest = $n - $maxShow;
-        if ($rest > 0) {
-            $text .= ' <fg=gray>(+' . $rest . ')</>';
-        }
-
-        return '<fg=yellow>' . $text . '</>';
     }
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void
