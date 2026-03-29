@@ -4,25 +4,39 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Settings\Settings;
+
 /**
- * Converts file paths to/from PSR-4 class names for Laravel app/ and tests/.
+ * Converts file paths to/from qualified class names.
+ * Configurable via Settings for different languages and project structures.
  */
 class NamespaceHelper
 {
-    /**
-     * PSR-4 root directory to namespace prefix (without trailing backslash).
-     *
-     * @var array<string, string>
-     */
-    protected array $roots = [
-        'app' => 'App',
-        'tests' => 'Tests',
-    ];
+    /** @var array<string, string> directory prefix => namespace prefix */
+    protected array $roots;
 
-    public function __construct(?array $roots = null)
+    protected string $sourceExtension;
+
+    protected string $testSuffix;
+
+    protected string $testExtension;
+
+    protected string $namespaceSeparator;
+
+    public function __construct(?array $roots = null, ?Settings $settings = null)
     {
-        if ($roots !== null) {
-            $this->roots = $roots;
+        if ($settings !== null) {
+            $this->roots = $settings->namespaceRoots;
+            $this->sourceExtension = $settings->sourceExtension;
+            $this->testSuffix = $settings->testSuffix;
+            $this->testExtension = $settings->testExtension;
+            $this->namespaceSeparator = $settings->namespaceSeparator;
+        } else {
+            $this->roots = $roots ?? ['app' => 'App', 'tests' => 'Tests'];
+            $this->sourceExtension = '.php';
+            $this->testSuffix = 'Test';
+            $this->testExtension = '.php';
+            $this->namespaceSeparator = '\\';
         }
     }
 
@@ -36,9 +50,9 @@ class NamespaceHelper
         $relativePath = str_replace('\\', '/', $relativePath);
         $relativePath = ltrim($relativePath, '/');
 
-        // Strip .php
-        if (str_ends_with($relativePath, '.php')) {
-            $relativePath = substr($relativePath, 0, -4);
+        // Strip source extension
+        if (str_ends_with($relativePath, $this->sourceExtension)) {
+            $relativePath = substr($relativePath, 0, -strlen($this->sourceExtension));
         }
 
         $segments = explode('/', $relativePath);
@@ -47,26 +61,21 @@ class NamespaceHelper
         foreach ($this->roots as $dir => $namespace) {
             if (strtolower($first) === strtolower($dir)) {
                 $rest = array_slice($segments, 1);
-                $class = implode('\\', array_map(
-                    fn (string $s) => $s,
-                    $rest
-                ));
 
-                return $namespace . '\\' . $class;
+                return $namespace . $this->namespaceSeparator . implode($this->namespaceSeparator, $rest);
             }
         }
 
-        // Default Laravel: app -> App, tests -> Tests
+        // Default: capitalize first segment
         $namespace = $first === 'app' ? 'App' : ($first === 'tests' ? 'Tests' : ucfirst($first));
         $rest = array_slice($segments, 1);
 
-        return $namespace . '\\' . implode('\\', $rest);
+        return $namespace . $this->namespaceSeparator . implode($this->namespaceSeparator, $rest);
     }
 
     /**
      * Convert a source file path to the expected test file path.
      * e.g. app/Actions/User.php -> tests/Unit/Actions/UserTest.php
-     * Uses the configured test_path base (e.g. tests/Unit/Actions).
      */
     public function sourcePathToTestPath(
         string $sourceRelativePath,
@@ -80,15 +89,15 @@ class NamespaceHelper
         $path = ltrim($path, '/');
 
         if (! str_starts_with($path, $sourcePathBase . '/') && $path !== $sourcePathBase) {
-            return $testPathBase . '/' . basename($path, '.php') . 'Test.php';
+            return $testPathBase . '/' . basename($path, $this->sourceExtension) . $this->testSuffix . $this->testExtension;
         }
 
         $suffix = substr($path, strlen($sourcePathBase) + 1);
-        $baseName = basename($suffix, '.php');
+        $baseName = basename($suffix, $this->sourceExtension);
         $subDir = dirname($suffix);
         $middle = $subDir !== '.' ? $subDir . '/' : '';
 
-        return $testPathBase . '/' . $middle . $baseName . 'Test.php';
+        return $testPathBase . '/' . $middle . $baseName . $this->testSuffix . $this->testExtension;
     }
 
     /**
@@ -100,5 +109,10 @@ class NamespaceHelper
         $path = preg_replace('#/+#', '/', $path);
 
         return trim($path, '/');
+    }
+
+    public function getSourceExtension(): string
+    {
+        return $this->sourceExtension;
     }
 }

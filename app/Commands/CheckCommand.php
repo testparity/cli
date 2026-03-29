@@ -12,6 +12,7 @@ use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
 use App\Services\PhpUnitXmlCoverageReader;
+use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Yaml\Yaml;
@@ -23,7 +24,7 @@ class CheckCommand extends Command
 
     protected $description = 'Check structural parity and code coverage per file using pluggable rules; does not run tests';
 
-    public function handle(NamespaceHelper $namespaceHelper, RuleRegistry $ruleRegistry): int
+    public function handle(RuleRegistry $ruleRegistry): int
     {
         $projectRoot = $this->resolveProjectRoot();
         if ($projectRoot === null) {
@@ -38,8 +39,12 @@ class CheckCommand extends Command
             return self::FAILURE;
         }
 
+        // ── Settings ───────────────────────────────────────────────
+        $settings = Settings::fromConfig($config);
+        $namespaceHelper = new NamespaceHelper(settings: $settings);
+
         // ── Coverage data ──────────────────────────────────────────
-        $coverageData = $this->loadCoverageData($config, $projectRoot);
+        $coverageData = $this->loadCoverageData($settings, $projectRoot);
         if ($coverageData === null) {
             return self::FAILURE;
         }
@@ -52,7 +57,7 @@ class CheckCommand extends Command
         $isPhpUnitXml = $coverageData['isPhpUnitXml'];
 
         // ── Global coverage check ─────────────────────────────────
-        $minCoverageGlobal = isset($config['min_coverage_global']) ? (float) $config['min_coverage_global'] : null;
+        $minCoverageGlobal = $settings->minCoverageGlobal;
         if ($minCoverageGlobal !== null && $globalPercent !== null) {
             if ($globalPercent >= $minCoverageGlobal) {
                 $this->info("Global coverage: {$globalPercent}% (minimum: {$minCoverageGlobal}%).");
@@ -82,7 +87,7 @@ class CheckCommand extends Command
             $fileMap = isset($entry['file_map']) && is_array($entry['file_map']) ? $entry['file_map'] : [];
 
             // Resolve rules for this structure
-            $resolvedRules = $this->resolveStructureRules($entry, $config, $ruleRegistry);
+            $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry);
 
             $sourceDir = $projectRoot . '/' . trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
@@ -95,7 +100,7 @@ class CheckCommand extends Command
             $this->line("  <fg=gray>Tests:  {$testPath}</>");
 
             $phpFiles = File::allFiles($sourceDir);
-            $phpFiles = array_filter($phpFiles, fn ($f) => str_ends_with($f->getFilename(), '.php'));
+            $phpFiles = array_filter($phpFiles, fn ($f) => str_ends_with($f->getFilename(), $settings->sourceExtension));
 
             $fileRows = [];
             foreach ($phpFiles as $file) {
@@ -200,8 +205,8 @@ class CheckCommand extends Command
         }
 
         // ── Summary ────────────────────────────────────────────────
-        $minCoverageDefault = (float) ($config['min_coverage'] ?? 80);
-        $minMatchedCoverageDefault = isset($config['min_matched_coverage']) ? (float) $config['min_matched_coverage'] : null;
+        $minCoverageDefault = $settings->minCoverage;
+        $minMatchedCoverageDefault = $settings->minMatchedCoverage;
         $perFileMin = $allFileCoverages !== [] ? min($allFileCoverages) : null;
         $perFileAvg = $allFileCoverages !== [] ? round(array_sum($allFileCoverages) / count($allFileCoverages), 2) : null;
         $this->title('Summary');
@@ -235,7 +240,7 @@ class CheckCommand extends Command
      *   - New format: rules: [{ minimum-coverage: { min: 80 } }, 'enforce-coverage-link']
      *   - Legacy format: enforce_attribute / enforce_coverage_link + min_coverage
      */
-    private function resolveStructureRules(array $entry, array $globalConfig, RuleRegistry $registry): array
+    private function resolveStructureRules(array $entry, Settings $settings, RuleRegistry $registry): array
     {
         // New format: explicit rules array
         if (isset($entry['rules']) && is_array($entry['rules'])) {
@@ -281,7 +286,7 @@ class CheckCommand extends Command
         // Coverage minimum
         $minCoverage = isset($entry['min_coverage'])
             ? (float) $entry['min_coverage']
-            : (float) ($globalConfig['min_coverage'] ?? 80);
+            : $settings->minCoverage;
         $ruleConfigs[] = ['minimum-coverage' => ['min' => $minCoverage]];
 
         return $registry->resolve($ruleConfigs);
@@ -394,11 +399,10 @@ class CheckCommand extends Command
 
     // ── Coverage data loading ──────────────────────────────────────
 
-    private function loadCoverageData(array $config, string $projectRoot): ?array
+    private function loadCoverageData(Settings $settings, string $projectRoot): ?array
     {
-        $coverageXmlConfig = $config['coverage_xml'] ?? ['clover.xml', 'coverage.xml'];
-        $coverageCandidates = is_array($coverageXmlConfig) ? $coverageXmlConfig : [$coverageXmlConfig];
-        $minCoverageGlobal = isset($config['min_coverage_global']) ? (float) $config['min_coverage_global'] : null;
+        $coverageCandidates = $settings->coveragePaths;
+        $minCoverageGlobal = $settings->minCoverageGlobal;
 
         $coveragePath = null;
         $isPhpUnitXml = false;

@@ -13,20 +13,40 @@ class InitCommand extends Command
     protected $description = 'Create a default parity.yaml in the current directory';
 
     private const DEFAULT_CONFIG = <<<'YAML'
-# Coverage file(s): string or array; first existing file is used (Clover XML only)
-coverage_xml: [clover.xml, coverage.xml]
-# Per-file coverage minimum (each source file must meet this %)
+# Parity — structural parity and coverage validation
+# Docs: https://github.com/eupry/parity
+
+# Project-wide settings (all configurable, sensible defaults for PHP/Laravel)
+settings:
+  # PSR-4 style namespace roots: directory → namespace prefix
+  namespace_roots:
+    app: App
+    tests: Tests
+  # File extensions and test naming
+  source_extension: ".php"
+  test_suffix: "Test"       # FooService.php → FooServiceTest.php
+  test_extension: ".php"
+  # Namespace separator (\ for PHP, . for Java/Python, / for Go)
+  namespace_separator: "\\"
+
+# Coverage file(s): first existing path is used
+# Supports Clover XML (single file) or PHPUnit XML (directory with index.xml)
+coverage_xml: [coverage-xml, clover.xml]
+
+# Global coverage thresholds
 min_coverage: 80
-# Optional: overall project coverage minimum
 # min_coverage_global: 80
 
+# Structure definitions with pluggable rules
 structure:
   - name: "Unit Actions"
-    source_path: "app/Actions"
-    test_path: "tests/Unit/Actions"
-    enforce_attribute: 'PHPUnit\Framework\Attributes\CoversClass'
-    # Optional: override per-file minimum for this structure
-    # min_coverage: 90
+    paths:
+      source: "app/Actions"
+      test: "tests/Unit/Actions"
+    rules:
+      - enforce-coverage-link
+      - minimum-coverage:
+          min: 90
 YAML;
 
     public function handle(): int
