@@ -1,18 +1,17 @@
 {
-    "name": "laravel-zero/laravel-zero",
-    "description": "The Laravel Zero Framework.",
-    "keywords": ["framework", "laravel", "laravel zero", "console", "cli"],
-    "homepage": "https://laravel-zero.com",
-    "type": "project",
+    "name": "ulties/parity",
+    "description": "Structural parity and code coverage validation — pluggable rules, framework agnostic.",
+    "keywords": ["testing", "coverage", "parity", "quality", "static-analysis", "cli"],
+    "homepage": "https://github.com/ulties/parity",
+    "type": "library",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/laravel-zero/laravel-zero/issues",
-        "source": "https://github.com/laravel-zero/laravel-zero"
+        "issues": "https://github.com/ulties/parity/issues",
+        "source": "https://github.com/ulties/parity"
     },
     "authors": [
         {
-            "name": "Nuno Maduro",
-            "email": "enunomaduro@gmail.com"
+            "name": "Ulties"
         }
     ],
     "require": {

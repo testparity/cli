@@ -5,17 +5,26 @@ Structural parity and code coverage validation for any project. Ensures test fil
 ## Install
 
 ```bash
-# Clone and install dependencies
-git clone <repo-url> parity
-cd parity && composer install
+composer global require ulties/parity
+```
+
+Make sure Composer's global bin directory is in your `PATH`:
+
+```bash
+# Add to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+export PATH="$HOME/.composer/vendor/bin:$PATH"
 ```
 
 ## Quick Start
 
 ```bash
 # In your project root
-/path/to/parity/parity init    # Creates parity.yaml
-/path/to/parity/parity check   # Run validation
+parity init    # Creates parity.yaml
+parity check   # Run validation
+
+# Options
+parity check --format=json          # JSON output for CI
+parity check --config=path/to.yaml  # Custom config path
 ```
 
 ## Configuration
@@ -94,26 +103,50 @@ public function parameters(): array
 }
 ```
 
-## Creating Custom Rules
+## Plugins
 
-Implement `App\Rules\RuleInterface` and register in `AppServiceProvider`:
+Parity discovers custom rules from three locations:
+
+| Source | Path | Format |
+|--------|------|--------|
+| Project-local | `.parity/plugins/*.php` | PHP file returning `RuleInterface` |
+| Global user | `~/.parity/plugins/*.php` | PHP file returning `RuleInterface` |
+| Composer package | `extra.parity.rules` in composer.json | Array of class FQCNs |
+
+### File Plugin
+
+Create a PHP file that returns a `RuleInterface` (or array of them):
 
 ```php
-class NamingConventionRule implements RuleInterface
-{
+// .parity/plugins/naming-convention.php
+return new class implements \App\Rules\RuleInterface {
     public function name(): string { return 'naming-convention'; }
     public function parameters(): array { return ['pattern' => 'sometimes|string']; }
-    public function evaluate(RuleContext $context, array $params): RuleResult { ... }
+    public function evaluate(\App\Rules\RuleContext $context, array $params): \App\Rules\RuleResult { ... }
     public function columnHeader(): ?string { return 'Name'; }
-    public function formatCell(RuleResult $result): string { ... }
+    public function formatCell(\App\Rules\RuleResult $result): string { ... }
     public function isEnforced(): bool { return true; }
-}
-
-// In AppServiceProvider::register()
-$registry->register(new NamingConventionRule);
+};
 ```
 
-Then use it in `parity.yaml`:
+### Composer Plugin Package
+
+Publish a composer package with rules declared in `composer.json`:
+
+```json
+{
+    "name": "acme/parity-rules",
+    "extra": {
+        "parity": {
+            "rules": [
+                "Acme\\Parity\\NamingConventionRule"
+            ]
+        }
+    }
+}
+```
+
+Then use any plugin rule in `parity.yaml`:
 
 ```yaml
 rules:
