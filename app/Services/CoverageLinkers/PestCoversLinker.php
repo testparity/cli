@@ -7,6 +7,7 @@ namespace App\Services\CoverageLinkers;
 /**
  * Extracts coverage declarations from Pest test files.
  * Supports: ->covers(Foo::class), ->coversClass(Foo::class)
+ *           covers(Foo::class) (standalone file-level declaration)
  *
  * Pest files are plain PHP without a class declaration.
  * They use function calls like it(), test(), describe() with method chaining.
@@ -26,9 +27,10 @@ class PestCoversLinker implements CoverageLinkerInterface
     {
         $covered = [];
 
-        // Match ->covers(...) and ->coversClass(...)
-        // These can contain one or more arguments: ->covers(Foo::class, Bar::class)
-        if (preg_match_all('/->covers(?:Class)?\s*\(([^)]+)\)/', $source, $matches)) {
+        // Match ->covers(...) and ->coversClass(...) (chained on test calls)
+        // Match covers(...) (standalone file-level declaration)
+        // These can contain one or more arguments: covers(Foo::class, Bar::class)
+        if (preg_match_all('/(?:->)?covers(?:Class)?\s*\(([^)]+)\)/', $source, $matches)) {
             foreach ($matches[1] as $argList) {
                 // Split by comma for multiple arguments
                 $args = preg_split('/\s*,\s*/', trim($argList));
