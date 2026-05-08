@@ -43,7 +43,9 @@ jobs:
 
       - name: Build PHAR
         run: |
-          composer box build --no-interaction
+          mkdir -p vendor/humbug/php-scoper/vendor-hotfix
+          touch vendor/humbug/php-scoper/vendor-hotfix/.gitkeep
+          ./vendor/bin/box compile --no-interaction
           ls -la parity.phar 2>/dev/null || echo "PHAR build attempted"
         env:
           BOX_CACHE_ENABLED: false
