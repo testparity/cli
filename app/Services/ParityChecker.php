@@ -18,7 +18,7 @@ class ParityChecker
      */
     public function ensureAutoloadLoaded(): void
     {
-        $autoload = $this->projectRoot . '/vendor/autoload.php';
+        $autoload = $this->projectRoot.'/vendor/autoload.php';
         if (is_file($autoload) && ! class_exists(\Composer\Autoload\ClassLoader::class, false)) {
             require_once $autoload;
         }
@@ -142,7 +142,7 @@ class ParityChecker
     {
         $root = rtrim(str_replace('\\', '/', $this->projectRoot), '/');
         $path = str_replace('\\', '/', $absolutePath);
-        if (str_starts_with($path, $root . '/')) {
+        if (str_starts_with($path, $root.'/')) {
             return substr($path, strlen($root) + 1);
         }
 
@@ -161,7 +161,7 @@ class ParityChecker
         if (preg_match('/\bclass\s+(\w+)/', $source, $m)) {
             $class = $m[1];
 
-            return $namespace !== null ? $namespace . '\\' . $class : $class;
+            return $namespace !== null ? $namespace.'\\'.$class : $class;
         }
 
         return null;

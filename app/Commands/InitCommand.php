@@ -58,7 +58,7 @@ YAML;
             return self::FAILURE;
         }
 
-        $configPath = $cwd . '/parity.yaml';
+        $configPath = $cwd.'/parity.yaml';
 
         if (is_file($configPath)) {
             $this->warn('parity.yaml already exists.');

@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p vendor/humbug/php-scoper/vendor-hotfix
           echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
+          git describe --tags --abbrev=0 > VERSION
           ./vendor/bin/box compile --no-interaction
           ls -la parity.phar 2>/dev/null || echo "PHAR build attempted"
         env:
