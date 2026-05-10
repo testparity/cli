@@ -43,7 +43,7 @@ class RuleRegistry
      *   - String: "test-exists" (no params)
      *   - Map:    { minimum-coverage: { min: 80 } }
      *
-     * @param list<string|array<string, mixed>> $ruleConfigs
+     * @param  list<string|array<string, mixed>>  $ruleConfigs
      * @return list<array{rule: RuleInterface, params: array<string, mixed>}>
      *
      * @throws \InvalidArgumentException if a rule is unknown or params are invalid
@@ -70,7 +70,7 @@ class RuleRegistry
 
             $rule = $this->get($name);
             if ($rule === null) {
-                throw new \InvalidArgumentException("Unknown parity rule: '{$name}'. Available: " . implode(', ', array_keys($this->rules)));
+                throw new \InvalidArgumentException("Unknown parity rule: '{$name}'. Available: ".implode(', ', array_keys($this->rules)));
             }
 
             // Validate params against rule's parameter spec

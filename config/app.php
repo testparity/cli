@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'version' => app('git.version'),
+    'version' => env('APP_VERSION', trim(file_get_contents(base_path('VERSION'))) ?: 'unreleased'),
 
     /*
     |--------------------------------------------------------------------------

@@ -1,17 +1,17 @@
 {
-    "name": "ulties/parity",
+    "name": "testparity/parity",
     "description": "Structural parity and code coverage validation — pluggable rules, framework agnostic.",
     "keywords": ["testing", "coverage", "parity", "quality", "static-analysis", "cli"],
-    "homepage": "https://github.com/ulties/parity",
+    "homepage": "https://testparity.com",
     "type": "library",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/ulties/parity/issues",
-        "source": "https://github.com/ulties/parity"
+        "issues": "https://github.com/testparity/parity/issues",
+        "source": "https://github.com/testparity/parity"
     },
     "authors": [
         {
-            "name": "Ulties"
+            "name": "Parity"
         }
     ],
     "require": {
@@ -20,6 +20,7 @@
         "symfony/yaml": "^8.0"
     },
     "require-dev": {
+        "humbug/box": "^4.7",
         "laravel/pint": "^1.25.1",
         "mockery/mockery": "^1.6.12",
         "pestphp/pest": "^3.8.4|^4.1.2"

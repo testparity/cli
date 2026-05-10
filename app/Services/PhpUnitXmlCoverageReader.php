@@ -35,12 +35,12 @@ class PhpUnitXmlCoverageReader
 
         $empty = ['coverage' => [], 'testsByFile' => [], 'lineCoverage' => [], 'totalExecutable' => [], 'globalPercent' => null];
 
-        $indexPath = rtrim($dirPath, '/\\') . '/index.xml';
+        $indexPath = rtrim($dirPath, '/\\').'/index.xml';
         if (! is_file($indexPath)) {
             return $empty;
         }
 
-        $indexDoc = new DOMDocument();
+        $indexDoc = new DOMDocument;
         if (! @$indexDoc->load($indexPath)) {
             return $empty;
         }
@@ -74,19 +74,19 @@ class PhpUnitXmlCoverageReader
         if ($fileNodes->length === 0) {
             $fileNodes = $indexXpath->query("//*[local-name()='file'][@href]");
         }
-        $dir = rtrim($dirPath, '/\\') . '/';
+        $dir = rtrim($dirPath, '/\\').'/';
 
         foreach ($fileNodes as $fileNode) {
             $href = $fileNode->getAttribute('href');
             if ($href === '') {
                 continue;
             }
-            $filePath = $dir . ltrim($href, '/');
+            $filePath = $dir.ltrim($href, '/');
             if (! is_file($filePath)) {
                 continue;
             }
 
-            $fileDoc = new DOMDocument();
+            $fileDoc = new DOMDocument;
             if (! @$fileDoc->load($filePath)) {
                 continue;
             }
@@ -102,8 +102,8 @@ class PhpUnitXmlCoverageReader
             $path = $fileEl->getAttribute('path');
             $name = $fileEl->getAttribute('name');
             $pathPart = $path !== '' ? ltrim(str_replace('\\', '/', $path), '/') : '';
-            $relativeFromSource = $pathPart !== '' ? $pathPart . '/' . $name : $name;
-            $relativePath = $sourcePrefix !== '' ? $sourcePrefix . '/' . $relativeFromSource : $relativeFromSource;
+            $relativeFromSource = $pathPart !== '' ? $pathPart.'/'.$name : $name;
+            $relativePath = $sourcePrefix !== '' ? $sourcePrefix.'/'.$relativeFromSource : $relativeFromSource;
 
             $linesEl = $fileXpath->query('//p:totals/p:lines')->item(0)
                 ?? $fileXpath->query("//*[local-name()='totals']/*[local-name()='lines']")->item(0);
@@ -157,7 +157,7 @@ class PhpUnitXmlCoverageReader
             $totalExecutable[$relativePath] = $executable;
 
             if ($projectRoot !== null) {
-                $normalized = $this->normalizePath($projectRoot . '/' . $relativePath);
+                $normalized = $this->normalizePath($projectRoot.'/'.$relativePath);
                 $coverage[$normalized] = $percent;
                 $testsByFile[$normalized] = $coveredBy;
                 $lineCoverage[$normalized] = $perLine;
@@ -199,6 +199,7 @@ class PhpUnitXmlCoverageReader
     {
         $path = str_replace('\\', '/', $path);
         $real = realpath($path);
+
         return $real !== false ? $real : $path;
     }
 }

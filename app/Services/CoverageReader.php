@@ -35,7 +35,7 @@ class CoverageReader
             return [];
         }
 
-        $doc = new DOMDocument();
+        $doc = new DOMDocument;
         if (! @$doc->loadXML($content)) {
             return [];
         }
@@ -98,13 +98,13 @@ class CoverageReader
             return null;
         }
 
-        $doc = new DOMDocument();
+        $doc = new DOMDocument;
         if (! @$doc->loadXML($content)) {
             return null;
         }
 
         $xpath = new DOMXPath($doc);
-        $metrics = $xpath->query("//metrics[@files]")->item(0);
+        $metrics = $xpath->query('//metrics[@files]')->item(0);
         if ($metrics === null) {
             return null;
         }
@@ -135,12 +135,13 @@ class CoverageReader
         if ($path === $root) {
             return '';
         }
-        if ($root !== '' && str_starts_with($path, $root . '/')) {
+        if ($root !== '' && str_starts_with($path, $root.'/')) {
             return substr($path, strlen($root) + 1);
         }
         if ($root === '' && preg_match('#^[a-zA-Z]:/#', $path)) {
             return $path;
         }
+
         return null;
     }
 }

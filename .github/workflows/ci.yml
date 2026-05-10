@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: php-actions/setup-php@v6
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json, Phelps
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+            vendor
+          key: composer-${{ runner.php-version }}-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            composer-${{ runner.php-version }}-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Run Pint
+        run: ./vendor/bin/pint --test
+
+      - name: Run Pest
+        run: ./vendor/bin/pest --colors=never
+
+      - name: Build PHAR
+        run: |
+          mkdir -p vendor/humbug/php-scoper/vendor-hotfix
+          echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
+          git describe --tags --abbrev=0 > VERSION
+          ./vendor/bin/box compile --no-interaction
+          ls -la parity.phar 2>/dev/null || echo "PHAR build attempted"
+        env:
+          BOX_CACHE_ENABLED: false
+
+      - name: Verify PHAR
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x parity.phar
+          ./parity.phar --version

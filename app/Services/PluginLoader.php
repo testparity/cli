@@ -24,12 +24,12 @@ class PluginLoader
     public function loadAll(RuleRegistry $registry, string $projectRoot): void
     {
         // 1. Project-local plugins
-        $this->loadDirectory($registry, $projectRoot . '/.parity/plugins');
+        $this->loadDirectory($registry, $projectRoot.'/.parity/plugins');
 
         // 2. Global user plugins
         $home = $_SERVER['HOME'] ?? $_ENV['HOME'] ?? getenv('HOME');
         if ($home !== false && $home !== '') {
-            $this->loadDirectory($registry, $home . '/.parity/plugins');
+            $this->loadDirectory($registry, $home.'/.parity/plugins');
         }
 
         // 3. Composer packages declaring parity rules
@@ -46,7 +46,7 @@ class PluginLoader
             return;
         }
 
-        $files = glob($directory . '/*.php');
+        $files = glob($directory.'/*.php');
         if ($files === false) {
             return;
         }
@@ -99,7 +99,7 @@ class PluginLoader
      */
     public function loadComposerPlugins(RuleRegistry $registry, string $projectRoot): void
     {
-        $installedPath = $projectRoot . '/vendor/composer/installed.json';
+        $installedPath = $projectRoot.'/vendor/composer/installed.json';
         if (! is_file($installedPath)) {
             return;
         }
@@ -116,7 +116,7 @@ class PluginLoader
         }
 
         // Ensure project autoloader is loaded
-        $autoload = $projectRoot . '/vendor/autoload.php';
+        $autoload = $projectRoot.'/vendor/autoload.php';
         if (is_file($autoload)) {
             require_once $autoload;
         }
@@ -131,6 +131,7 @@ class PluginLoader
             foreach ($ruleClasses as $className) {
                 if (! is_string($className) || ! class_exists($className)) {
                     $this->warnings[] = "Composer plugin {$packageName}: class {$className} not found";
+
                     continue;
                 }
 

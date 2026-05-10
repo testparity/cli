@@ -62,6 +62,7 @@ class PhpAttributeLinker implements CoverageLinkerInterface
                 if ($depth !== 0) {
                     $i = $j;
                 }
+
                 continue;
             }
             $i++;
@@ -77,7 +78,7 @@ class PhpAttributeLinker implements CoverageLinkerInterface
 
     private function parseCoversClassFromBlock(string $attributeContent, array $useMap, ?string $classNamespace): ?string
     {
-        $pattern = '/\b' . preg_quote($this->attributeShortName, '/') . '\s*\(/';
+        $pattern = '/\b'.preg_quote($this->attributeShortName, '/').'\s*\(/';
         if (! preg_match($pattern, $attributeContent, $argMatch, PREG_OFFSET_CAPTURE)) {
             return null;
         }
@@ -114,10 +115,10 @@ class PhpAttributeLinker implements CoverageLinkerInterface
                 $base = $useMap[$first];
                 array_shift($parts);
 
-                return $parts === [] ? $base : $base . '\\' . implode('\\', $parts);
+                return $parts === [] ? $base : $base.'\\'.implode('\\', $parts);
             }
             if ($classNamespace !== null) {
-                return $classNamespace . '\\' . $ref;
+                return $classNamespace.'\\'.$ref;
             }
 
             return $ref;

@@ -62,7 +62,7 @@ class NamespaceHelper
             if (strtolower($first) === strtolower($dir)) {
                 $rest = array_slice($segments, 1);
 
-                return $namespace . $this->namespaceSeparator . implode($this->namespaceSeparator, $rest);
+                return $namespace.$this->namespaceSeparator.implode($this->namespaceSeparator, $rest);
             }
         }
 
@@ -70,7 +70,7 @@ class NamespaceHelper
         $namespace = $first === 'app' ? 'App' : ($first === 'tests' ? 'Tests' : ucfirst($first));
         $rest = array_slice($segments, 1);
 
-        return $namespace . $this->namespaceSeparator . implode($this->namespaceSeparator, $rest);
+        return $namespace.$this->namespaceSeparator.implode($this->namespaceSeparator, $rest);
     }
 
     /**
@@ -88,16 +88,16 @@ class NamespaceHelper
         $path = str_replace('\\', '/', $sourceRelativePath);
         $path = ltrim($path, '/');
 
-        if (! str_starts_with($path, $sourcePathBase . '/') && $path !== $sourcePathBase) {
-            return $testPathBase . '/' . basename($path, $this->sourceExtension) . $this->testSuffix . $this->testExtension;
+        if (! str_starts_with($path, $sourcePathBase.'/') && $path !== $sourcePathBase) {
+            return $testPathBase.'/'.basename($path, $this->sourceExtension).$this->testSuffix.$this->testExtension;
         }
 
         $suffix = substr($path, strlen($sourcePathBase) + 1);
         $baseName = basename($suffix, $this->sourceExtension);
         $subDir = dirname($suffix);
-        $middle = $subDir !== '.' ? $subDir . '/' : '';
+        $middle = $subDir !== '.' ? $subDir.'/' : '';
 
-        return $testPathBase . '/' . $middle . $baseName . $this->testSuffix . $this->testExtension;
+        return $testPathBase.'/'.$middle.$baseName.$this->testSuffix.$this->testExtension;
     }
 
     /**

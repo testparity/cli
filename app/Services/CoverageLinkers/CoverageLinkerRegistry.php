@@ -13,7 +13,7 @@ class CoverageLinkerRegistry
     private array $linkers;
 
     /**
-     * @param list<CoverageLinkerInterface>|null $linkers Custom linkers (null = default set)
+     * @param  list<CoverageLinkerInterface>|null  $linkers  Custom linkers (null = default set)
      */
     public function __construct(?array $linkers = null)
     {
@@ -35,7 +35,7 @@ class CoverageLinkerRegistry
      * Build a registry from config strings (e.g. ['pest-covers', 'php-attribute']).
      * Falls back to defaults if null/empty.
      *
-     * @param list<string>|null $linkerNames
+     * @param  list<string>|null  $linkerNames
      */
     public static function fromConfig(?array $linkerNames = null, string $attributeFqcn = 'PHPUnit\Framework\Attributes\CoversClass'): self
     {

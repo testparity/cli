@@ -8,7 +8,6 @@ use App\Rules\CoverageAttributionRule;
 use App\Rules\RuleContext;
 use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
-use App\Rules\RuleResult;
 use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
@@ -43,7 +42,7 @@ class CheckCommand extends Command
 
         $configPath = $configOption
             ? (realpath((string) $configOption) ?: (string) $configOption)
-            : $projectRoot . '/parity.yaml';
+            : $projectRoot.'/parity.yaml';
         $config = $this->loadConfig($configPath);
         if ($config === null) {
             return self::FAILURE;
@@ -115,9 +114,10 @@ class CheckCommand extends Command
             // Resolve rules for this structure
             $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $isPhpUnitXml);
 
-            $sourceDir = $projectRoot . '/' . trim($sourcePath, '/');
+            $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
                 $this->warn("Source path does not exist: {$sourcePath}");
+
                 continue;
             }
 
@@ -135,14 +135,14 @@ class CheckCommand extends Command
             $fileRows = [];
             foreach ($phpFiles as $file) {
                 $relativeSource = $namespaceHelper->normalizeRelativePath($file->getRelativePathname());
-                $fullSourceRelative = trim($sourcePath, '/') . '/' . $relativeSource;
+                $fullSourceRelative = trim($sourcePath, '/').'/'.$relativeSource;
                 $mappedTest = $fileMap[$relativeSource] ?? null;
                 $expectedTestRelative = $mappedTest !== null
-                    ? trim($testPath, '/') . '/' . $mappedTest
+                    ? trim($testPath, '/').'/'.$mappedTest
                     : $namespaceHelper->sourcePathToTestPath($fullSourceRelative, trim($sourcePath, '/'), trim($testPath, '/'));
                 $expectedSourceFqcn = $namespaceHelper->pathToFqcn($fullSourceRelative);
-                $testAbsolute = $projectRoot . '/' . $expectedTestRelative;
-                $sourceAbsolute = $projectRoot . '/' . $fullSourceRelative;
+                $testAbsolute = $projectRoot.'/'.$expectedTestRelative;
+                $sourceAbsolute = $projectRoot.'/'.$fullSourceRelative;
 
                 $testExists = is_file($testAbsolute);
                 $testContent = $testExists ? @file_get_contents($testAbsolute) ?: null : null;
@@ -194,7 +194,7 @@ class CheckCommand extends Command
                 $allFileCoverages[] = $coveragePercent;
 
                 $dirUnderSource = dirname($relativeSource);
-                $relativeTest = ($dirUnderSource === '.' ? '' : $dirUnderSource . '/') . basename($expectedTestRelative);
+                $relativeTest = ($dirUnderSource === '.' ? '' : $dirUnderSource.'/').basename($expectedTestRelative);
 
                 $fileRows[] = [
                     'relativeSource' => $relativeSource,
@@ -411,8 +411,8 @@ class CheckCommand extends Command
             if ($dir !== $lastDir && $dir !== '.') {
                 $lastDir = $dir;
                 $dirRow = [
-                    sprintf($gray, $dir . '/'),
-                    sprintf($gray, $dir . '/'),
+                    sprintf($gray, $dir.'/'),
+                    sprintf($gray, $dir.'/'),
                 ];
                 for ($i = 0; $i < $ruleColumnCount; $i++) {
                     $dirRow[] = sprintf($gray, '-');
@@ -424,8 +424,8 @@ class CheckCommand extends Command
                 $lastDir = $dir;
             }
 
-            $sourceCell = ($dir === '.' ? '' : '  ') . basename($row['relativeSource']);
-            $testCell = ($dir === '.' ? '' : '  ') . basename($row['relativeTest']);
+            $sourceCell = ($dir === '.' ? '' : '  ').basename($row['relativeSource']);
+            $testCell = ($dir === '.' ? '' : '  ').basename($row['relativeTest']);
 
             $tableRow = [$sourceCell, $testCell];
 
@@ -461,12 +461,12 @@ class CheckCommand extends Command
         $coveragePath = null;
         $isPhpUnitXml = false;
         foreach ($coverageCandidates as $candidate) {
-            $path = $projectRoot . '/' . ltrim((string) $candidate, '/');
+            $path = $projectRoot.'/'.ltrim((string) $candidate, '/');
             if (is_file($path)) {
                 $coveragePath = $path;
                 break;
             }
-            if (is_dir($path) && is_file($path . '/index.xml')) {
+            if (is_dir($path) && is_file($path.'/index.xml')) {
                 $coveragePath = $path;
                 $isPhpUnitXml = true;
                 break;
@@ -537,7 +537,7 @@ class CheckCommand extends Command
         $this->newLine();
         $this->warn('Tests that did not match any structure (e.g. wrong path/namespace):');
         foreach ($unmatched as $path) {
-            $this->line('  <fg=yellow>' . $path . '</>');
+            $this->line('  <fg=yellow>'.$path.'</>');
         }
     }
 
@@ -556,7 +556,7 @@ class CheckCommand extends Command
             $segments[0] = 'tests';
         }
 
-        return implode('/', $segments) . '.php';
+        return implode('/', $segments).'.php';
     }
 
     private function outputCoverageSummaryTable(?float $globalPercent, ?float $minCoverageGlobal, float $minCoverageDefault, ?float $minMatchedCoverage = null, ?float $perFileMin = null, ?float $perFileAvg = null): void
@@ -596,7 +596,7 @@ class CheckCommand extends Command
         if ($cwd === false) {
             return null;
         }
-        if (! is_file($cwd . '/parity.yaml')) {
+        if (! is_file($cwd.'/parity.yaml')) {
             return null;
         }
 
