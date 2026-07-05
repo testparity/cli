@@ -2,7 +2,7 @@
 <coverage generated="1783194209753" clover="3.2.0">
   <project timestamp="1783194209753" name="All files">
     <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1" elements="3" coveredelements="3" complexity="0" loc="2" ncloc="2" packages="1" files="1" classes="1"/>
-    <file name="sum.js" path="/Users/mark/Projects/Parity/parity/samples/jest/code/src/sum.js">
+    <file name="sum.js" path="code/src/sum.js">
       <metrics statements="2" coveredstatements="2" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
       <line num="2" count="1" type="stmt"/>
       <line num="5" count="1" type="stmt"/>
