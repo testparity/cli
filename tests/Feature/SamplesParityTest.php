@@ -15,9 +15,17 @@ it('ships passing sample parity configurations', function (string $sample) {
         '--config='.$config,
         '--format=json',
     ], $projectRoot);
+    $process->setEnv([
+        ...$_ENV,
+        'XDEBUG_MODE' => 'off',
+    ]);
     $process->run();
 
-    expect($process->getExitCode(), $process->getOutput().$process->getErrorOutput())->toBe(0);
+    $this->assertSame(
+        0,
+        $process->getExitCode(),
+        "Sample [{$sample}] failed.\nSTDOUT:\n{$process->getOutput()}\nSTDERR:\n{$process->getErrorOutput()}"
+    );
 })->with([
     'php',
     'laravel',
