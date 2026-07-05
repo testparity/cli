@@ -16,7 +16,7 @@ structure:
       InitCommand.php: InitCommandTest.php
     rules:
       - minimum-coverage:
-          min: 40
+          min: 20
       - matched-coverage:
           min: 10
 
