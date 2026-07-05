@@ -8,6 +8,8 @@ use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
 
 /**
+ * Specs: S005
+ *
  * Discovers and loads parity plugins from multiple sources:
  * project-local (.parity/plugins/), global user (~/.parity/plugins/),
  * and composer packages (extra.parity.rules in composer.json).
@@ -117,7 +119,7 @@ class PluginLoader
 
         // Ensure project autoloader is loaded
         $autoload = $projectRoot.'/vendor/autoload.php';
-        if (is_file($autoload)) {
+        if (is_file($autoload) && ! $this->isRunningPharFromProjectRoot($projectRoot)) {
             require_once $autoload;
         }
 
@@ -155,5 +157,22 @@ class PluginLoader
     public function getWarnings(): array
     {
         return $this->warnings;
+    }
+
+    private function isRunningPharFromProjectRoot(string $projectRoot): bool
+    {
+        if (! class_exists(\Phar::class)) {
+            return false;
+        }
+
+        $pharPath = \Phar::running(false);
+        if ($pharPath === '') {
+            return false;
+        }
+
+        $pharDirectory = realpath(dirname($pharPath));
+        $root = realpath($projectRoot);
+
+        return $pharDirectory !== false && $root !== false && $pharDirectory === $root;
     }
 }

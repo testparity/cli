@@ -1,0 +1,22 @@
+settings:
+  namespace_roots:
+    code/src: App
+    code/tests: Tests
+  source_extension: ".php"
+  test_suffix: "Test"
+  test_extension: ".php"
+  namespace_separator: "\\"
+
+coverage_xml: code/clover.xml
+min_coverage: 80
+
+structure:
+  - name: "Pest sample"
+    paths:
+      source: "code/src"
+      test: "code/tests"
+    rules:
+      - enforce-coverage-link:
+          linkers: [pest-covers]
+      - minimum-coverage:
+          min: 80

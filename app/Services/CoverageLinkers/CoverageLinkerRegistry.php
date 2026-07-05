@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\CoverageLinkers;
 
 /**
+ * Specs: S004
+ *
  * Registry that auto-detects and applies the appropriate coverage linker for a test file.
  */
 class CoverageLinkerRegistry

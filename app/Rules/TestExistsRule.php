@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Rules;
 
+/**
+ * Specs: S002, S007
+ */
 class TestExistsRule implements RuleInterface
 {
     public function name(): string

@@ -7,6 +7,9 @@ namespace App\Providers;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Specs: S010
+ */
 final class GitVersionFallbackProvider extends ServiceProvider
 {
     public function register(): void

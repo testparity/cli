@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Rules;
 
+/**
+ * Specs: S002, S005
+ */
 interface RuleInterface
 {
     /**

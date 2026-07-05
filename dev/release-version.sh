@@ -57,6 +57,7 @@ case $BUMP_TYPE in
 esac
 
 NEW_VERSION="v${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+NEW_VERSION_NUMBER="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
 TODAY=$(date '+%Y-%m-%d')
 
 echo "Current version: $VERSION"
@@ -70,9 +71,14 @@ if $DRY_RUN; then
     exit 0
 fi
 
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "ERROR: Working tree is dirty. Commit or stash changes before releasing." >&2
+    exit 1
+fi
+
 # 1. Update VERSION
-echo "$NEW_VERSION" > "$VERSION_FILE"
-echo "Updated VERSION: $NEW_VERSION"
+echo "$NEW_VERSION_NUMBER" > "$VERSION_FILE"
+echo "Updated VERSION: $NEW_VERSION_NUMBER"
 
 # 2. Prepend new changelog entry
 CHANGELOG_TMP=$(mktemp)
@@ -84,7 +90,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [$NEW_VERSION] - $TODAY
+## [$NEW_VERSION_NUMBER] - $TODAY
 
 ### Added
 - (new release)
@@ -99,14 +105,14 @@ git add VERSION CHANGELOG.md
 git commit -m "release: $NEW_VERSION"
 
 # 4. Git tag
-git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 
 # 5. Push
 if $PUSH; then
     echo "Pushing to remote..."
     git push origin main
-    git push origin "v${NEW_VERSION}"
-    echo "✅ Released v${NEW_VERSION}"
+    git push origin "$NEW_VERSION"
+    echo "Released $NEW_VERSION"
 else
     echo "[--push not specified] Skipping remote push"
     echo "To release, run: ./dev/release-version.sh $BUMP_TYPE --push"

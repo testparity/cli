@@ -1,0 +1,14 @@
+{
+  "name": "parity-sample-vitest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "coverage": "vitest run --coverage && cp coverage/clover.xml clover.xml"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\CoverageLinkers;
 
+/**
+ * Specs: S004, S005
+ */
 interface CoverageLinkerInterface
 {
     /**

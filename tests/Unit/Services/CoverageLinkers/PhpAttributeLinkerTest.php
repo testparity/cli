@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Specs: S004-FR-001, S004-FR-003, S010-FR-005
+
 namespace Tests\Unit\Services\CoverageLinkers;
 
 use App\Services\CoverageLinkers\PhpAttributeLinker;

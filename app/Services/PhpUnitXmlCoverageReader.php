@@ -8,6 +8,8 @@ use DOMDocument;
 use DOMXPath;
 
 /**
+ * Specs: S003
+ *
  * Reads PHPUnit XML coverage (--coverage-xml=<dir>): per-file coverage % and which tests cover each file.
  */
 class PhpUnitXmlCoverageReader
@@ -41,7 +43,7 @@ class PhpUnitXmlCoverageReader
         }
 
         $indexDoc = new DOMDocument;
-        if (! @$indexDoc->load($indexPath)) {
+        if (! $this->loadXmlFile($indexDoc, $indexPath)) {
             return $empty;
         }
 
@@ -87,7 +89,7 @@ class PhpUnitXmlCoverageReader
             }
 
             $fileDoc = new DOMDocument;
-            if (! @$fileDoc->load($filePath)) {
+            if (! $this->loadXmlFile($fileDoc, $filePath)) {
                 continue;
             }
 
@@ -201,5 +203,15 @@ class PhpUnitXmlCoverageReader
         $real = realpath($path);
 
         return $real !== false ? $real : $path;
+    }
+
+    private function loadXmlFile(DOMDocument $document, string $path): bool
+    {
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $document->load($path);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        return $loaded;
     }
 }

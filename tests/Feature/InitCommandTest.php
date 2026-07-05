@@ -1,12 +1,14 @@
 <?php
 
+// Specs: S001-FR-013, S001-FR-014, S001-FR-015, S010-FR-005
+
 it('creates parity.yaml when it does not exist', function () {
     $cwd = getcwd();
-    $configPath = $cwd . '/parity.yaml';
+    $configPath = $cwd.'/parity.yaml';
 
     $hadConfig = is_file($configPath);
     if ($hadConfig) {
-        $backup = $configPath . '.bak';
+        $backup = $configPath.'.bak';
         rename($configPath, $backup);
     }
 
@@ -26,7 +28,7 @@ it('creates parity.yaml when it does not exist', function () {
 
 it('does not overwrite existing parity.yaml', function () {
     $cwd = getcwd();
-    $configPath = $cwd . '/parity.yaml';
+    $configPath = $cwd.'/parity.yaml';
 
     $hadConfig = is_file($configPath);
     $originalContent = $hadConfig ? file_get_contents($configPath) : null;

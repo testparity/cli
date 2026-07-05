@@ -1,0 +1,20 @@
+settings:
+  namespace_roots:
+    app: App
+    tests: Tests
+  source_extension: ".php"
+  test_suffix: "Test"
+  test_extension: ".php"
+  namespace_separator: "\\"
+
+coverage_xml: clover.xml
+min_coverage: 80
+
+structure:
+  - name: "Laravel Services"
+    paths:
+      source: "app/Services"
+      test: "tests/Unit/Services"
+    rules:
+      - minimum-coverage:
+          min: 80

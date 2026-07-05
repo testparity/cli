@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Rules;
 
 /**
+ * Specs: S002, S003
+ *
  * Checks coverage from the matching test file only (not all tests).
  * Only meaningful when PHPUnit XML coverage data is available.
  */

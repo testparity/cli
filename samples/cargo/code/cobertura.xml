@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage line-rate="1.0">
+  <packages>
+    <package name="parity_sample_cargo" line-rate="1.0">
+      <classes>
+        <class name="lib" filename="code/src/lib.rs" line-rate="1.0">
+          <lines>
+            <line number="1" hits="1"/>
+            <line number="2" hits="1"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

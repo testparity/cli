@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Rules;
 
 /**
+ * Specs: S002, S003, S008
+ *
  * Informational rule that shows which tests cover a source file.
  * Never fails — purely for visibility.
  */

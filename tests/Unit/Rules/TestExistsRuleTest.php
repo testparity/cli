@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Specs: S002-FR-004, S007-FR-002, S010-FR-005
+
 namespace Tests\Unit\Rules;
 
 use App\Rules\RuleContext;

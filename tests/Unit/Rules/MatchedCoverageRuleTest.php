@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Specs: S002-FR-004, S003-FR-004, S008-FR-023, S010-FR-005
+
 namespace Tests\Unit\Rules;
 
 use App\Rules\MatchedCoverageRule;

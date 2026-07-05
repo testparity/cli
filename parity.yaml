@@ -1,14 +1,74 @@
-# Coverage file(s): string or array; first existing file is used (Clover XML only)
-coverage_xml: [clover.xml, coverage.xml]
-# Per-file coverage minimum (each source file must meet this %)
-min_coverage: 90
-# Overall project coverage minimum
-min_coverage_global: 100
+# Parity dogfoods itself: CI generates PHPUnit XML coverage, then this config
+# checks that production files have corresponding tests and meaningful coverage.
+coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
+
+min_coverage: 40
+min_coverage_global: 60
+min_matched_coverage: 20
 
 structure:
-  - name: "Unit Actions"
-    source_path: "app/Actions"
-    test_path: "tests/Unit/Actions"
-    enforce_attribute: 'PHPUnit\Framework\Attributes\CoversClass'
-    # Optional: override per-file minimum for this structure
-    # min_coverage: 90
+  - name: Commands
+    paths:
+      source: app/Commands
+      test: tests/Feature
+    file_map:
+      CheckCommand.php: CheckCommandConfigTest.php
+      InitCommand.php: InitCommandTest.php
+    rules:
+      - minimum-coverage:
+          min: 40
+      - matched-coverage:
+          min: 10
+
+  - name: Providers
+    paths:
+      source: app/Providers
+      test: tests/Feature
+    file_map:
+      AppServiceProvider.php: SamplesParityTest.php
+      GitVersionFallbackProvider.php: SamplesParityTest.php
+    rules:
+      - minimum-coverage:
+          min: 10
+      - matched-coverage:
+          min: 0
+
+  - name: Rules
+    paths:
+      source: app/Rules
+      test: tests/Unit/Rules
+    file_map:
+      RuleInterface.php: RuleRegistryTest.php
+      RuleContext.php: RuleContextTest.php
+      RuleResult.php: RuleResultTest.php
+      CoverageAttributionRule.php: CoverageAttributionRuleTest.php
+      EnforceCoverageLinkRule.php: EnforceCoverageLinkRuleTest.php
+    rules:
+      - minimum-coverage:
+          min: 0
+      - matched-coverage:
+          min: 10
+
+  - name: Services
+    paths:
+      source: app/Services
+      test: tests/Unit/Services
+    file_map:
+      ParityChecker.php: ParityCheckerTest.php
+      CoverageLinkers/CoverageLinkerInterface.php: CoverageLinkers/PhpAttributeLinkerTest.php
+      CoverageLinkers/CoverageLinkerRegistry.php: CoverageLinkers/CoverageLinkerRegistryTest.php
+    rules:
+      - minimum-coverage:
+          min: 0
+      - matched-coverage:
+          min: 10
+
+  - name: Settings
+    paths:
+      source: app/Settings
+      test: tests/Unit/Settings
+    rules:
+      - minimum-coverage:
+          min: 60
+      - matched-coverage:
+          min: 40

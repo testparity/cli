@@ -1,0 +1,20 @@
+settings:
+  namespace_roots:
+    code/src: src
+    code/tests: tests
+  source_extension: ".rs"
+  test_suffix: "_test"
+  test_extension: ".rs"
+  namespace_separator: "::"
+
+coverage_xml: code/cobertura.xml
+min_coverage: 80
+
+structure:
+  - name: "Cargo sample"
+    paths:
+      source: "code/src"
+      test: "code/tests"
+    rules:
+      - minimum-coverage:
+          min: 80

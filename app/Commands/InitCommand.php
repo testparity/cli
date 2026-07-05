@@ -6,6 +6,9 @@ namespace App\Commands;
 
 use LaravelZero\Framework\Commands\Command;
 
+/**
+ * Specs: S001, S006
+ */
 class InitCommand extends Command
 {
     protected $signature = 'init';
@@ -31,7 +34,7 @@ settings:
 
 # Coverage file(s): first existing path is used
 # Supports Clover XML (single file) or PHPUnit XML (directory with index.xml)
-coverage_xml: [coverage-xml, clover.xml]
+coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
 
 # Global coverage thresholds
 min_coverage: 80

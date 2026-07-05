@@ -10,6 +10,9 @@ use App\Rules\RuleRegistry;
 use App\Rules\TestExistsRule;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Specs: S002
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**

@@ -1,0 +1,20 @@
+settings:
+  namespace_roots:
+    code/src: Src
+    code/tests: Tests
+  source_extension: ".ts"
+  test_suffix: ".test"
+  test_extension: ".ts"
+  namespace_separator: "."
+
+coverage_xml: code/clover.xml
+min_coverage: 80
+
+structure:
+  - name: "Vitest sample"
+    paths:
+      source: "code/src"
+      test: "code/tests"
+    rules:
+      - minimum-coverage:
+          min: 80

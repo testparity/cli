@@ -8,9 +8,11 @@ use DOMDocument;
 use DOMXPath;
 
 /**
- * Reads Clover XML coverage reports (PHPUnit --coverage-clover) and returns per-file coverage percentages.
+ * Specs: S003
  *
- * Clover XML does not store which test executed which line. It only stores per-line execution count
+ * Reads single-file XML coverage reports and returns per-file coverage percentages.
+ *
+ * Clover and Cobertura XML do not store which test executed which line. They store per-file or per-line counts
  * (see vendor/phpunit/php-code-coverage Report/Clover.php: it uses count($coverageData[$line]) and
  * never writes test names). For per-test coverage (which test covered which line), PHPUnit's own
  * XML format (--coverage-xml) stores <covered by="TestClass::method"/> per line.
@@ -18,7 +20,7 @@ use DOMXPath;
 class CoverageReader
 {
     /**
-     * Parse a Clover XML file and return coverage percentage per file path.
+     * Parse a Clover or Cobertura XML file and return coverage percentage per file path.
      * Keys are normalized absolute paths and, when projectRoot is given, relative paths.
      * Use projectRoot so lookup works whether the XML stores absolute or relative paths.
      *
@@ -36,17 +38,21 @@ class CoverageReader
         }
 
         $doc = new DOMDocument;
-        if (! @$doc->loadXML($content)) {
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $doc->loadXML($content);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if (! $loaded) {
             return [];
         }
 
         $xpath = new DOMXPath($doc);
-        $files = $xpath->query('//file[@name]');
         $map = [];
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
 
+        $files = $xpath->query('//file[@name]');
         foreach ($files as $file) {
-            $name = $file->getAttribute('name');
+            $name = $file->getAttribute('path') ?: $file->getAttribute('name');
             if ($name === '') {
                 continue;
             }
@@ -64,26 +70,30 @@ class CoverageReader
                 ? round(100.0 * $covered / $statements, 2)
                 : 100.0;
 
-            $normalized = $this->normalizePath($name);
-            $map[$normalized] = $percent;
+            $this->storeCoveragePath($map, $name, $percent, $root);
+        }
 
-            if ($root !== null) {
-                $relative = $this->pathRelativeTo($normalized, $root);
-                if ($relative === null && $name !== '' && $name[0] !== '/' && (strlen($name) < 2 || $name[1] !== ':')) {
-                    $relative = str_replace('\\', '/', $name);
-                }
-                if ($relative !== null) {
-                    $map[$relative] = $percent;
-                }
+        $classes = $xpath->query('//class[@filename]');
+        foreach ($classes as $class) {
+            $filename = $class->getAttribute('filename');
+            if ($filename === '') {
+                continue;
             }
+
+            $lineRate = $class->getAttribute('line-rate');
+            $percent = $lineRate !== ''
+                ? round(((float) $lineRate) * 100, 2)
+                : $this->readCoberturaLinePercent($xpath, $class);
+
+            $this->storeCoveragePath($map, $filename, $percent, $root);
         }
 
         return $map;
     }
 
     /**
-     * Read project-level (global) coverage percentage from Clover XML.
-     * Uses the project metrics element (statements / coveredstatements).
+     * Read project-level (global) coverage percentage from Clover or Cobertura XML.
+     * Uses Clover project metrics when present, otherwise Cobertura's root line-rate.
      *
      * @return float|null 0–100 or null if not found
      */
@@ -99,24 +109,76 @@ class CoverageReader
         }
 
         $doc = new DOMDocument;
-        if (! @$doc->loadXML($content)) {
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $doc->loadXML($content);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if (! $loaded) {
             return null;
         }
 
         $xpath = new DOMXPath($doc);
         $metrics = $xpath->query('//metrics[@files]')->item(0);
-        if ($metrics === null) {
-            return null;
+        if ($metrics !== null) {
+            $statements = (int) $metrics->getAttribute('statements');
+            $covered = (int) $metrics->getAttribute('coveredstatements');
+
+            if ($statements <= 0) {
+                return 100.0;
+            }
+
+            return round(100.0 * $covered / $statements, 2);
         }
 
-        $statements = (int) $metrics->getAttribute('statements');
-        $covered = (int) $metrics->getAttribute('coveredstatements');
+        $coverage = $xpath->query('/*[local-name()="coverage"]')->item(0);
+        if ($coverage !== null && $coverage->hasAttribute('line-rate')) {
+            return round(((float) $coverage->getAttribute('line-rate')) * 100, 2);
+        }
 
-        if ($statements <= 0) {
+        return null;
+    }
+
+    private function readCoberturaLinePercent(DOMXPath $xpath, \DOMNode $class): float
+    {
+        $lines = $xpath->query('lines/line', $class);
+        if ($lines->length === 0) {
             return 100.0;
         }
 
-        return round(100.0 * $covered / $statements, 2);
+        $covered = 0;
+        foreach ($lines as $line) {
+            if ((int) $line->getAttribute('hits') > 0) {
+                $covered++;
+            }
+        }
+
+        return round(100.0 * $covered / $lines->length, 2);
+    }
+
+    /**
+     * @param  array<string, float>  $map
+     */
+    private function storeCoveragePath(array &$map, string $path, float $percent, ?string $root): void
+    {
+        $normalized = $this->normalizePath($path);
+        $map[$normalized] = $percent;
+
+        if ($root === null) {
+            return;
+        }
+
+        $relative = $this->pathRelativeTo($normalized, $root);
+        if ($relative === null && $this->isRelativePath($path)) {
+            $relative = str_replace('\\', '/', $path);
+        }
+        if ($relative !== null) {
+            $map[$relative] = $percent;
+        }
+    }
+
+    private function isRelativePath(string $path): bool
+    {
+        return $path !== '' && $path[0] !== '/' && (strlen($path) < 2 || $path[1] !== ':');
     }
 
     private function normalizePath(string $path): string

@@ -16,8 +16,12 @@ use App\Services\PluginLoader;
 use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
+/**
+ * Specs: S001, S002, S003, S008
+ */
 class CheckCommand extends Command
 {
     protected $signature = 'check
@@ -112,7 +116,13 @@ class CheckCommand extends Command
             $fileMap = isset($entry['file_map']) && is_array($entry['file_map']) ? $entry['file_map'] : [];
 
             // Resolve rules for this structure
-            $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $isPhpUnitXml);
+            try {
+                $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $isPhpUnitXml);
+            } catch (\InvalidArgumentException $e) {
+                $this->error($e->getMessage());
+
+                return self::FAILURE;
+            }
 
             $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
@@ -625,7 +635,13 @@ class CheckCommand extends Command
             return null;
         }
         if (class_exists(Yaml::class)) {
-            $config = Yaml::parse($contents);
+            try {
+                $config = Yaml::parse($contents);
+            } catch (ParseException $e) {
+                $this->error("Invalid YAML in {$configPath}: {$e->getMessage()}");
+
+                return null;
+            }
 
             return is_array($config) ? $config : null;
         }

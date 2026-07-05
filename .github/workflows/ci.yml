@@ -19,8 +19,8 @@ jobs:
         uses: php-actions/setup-php@v6
         with:
           php-version: '8.3'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json, Phelps
-          coverage: none
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json
+          coverage: xdebug
 
       - name: Cache Composer
         uses: actions/cache@v4
@@ -39,13 +39,16 @@ jobs:
         run: ./vendor/bin/pint --test
 
       - name: Run Pest
-        run: ./vendor/bin/pest --colors=never
+        run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
+
+      - name: Run Parity on Parity
+        run: php parity check --format=json
 
       - name: Build PHAR
         run: |
           mkdir -p vendor/humbug/php-scoper/vendor-hotfix
           echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
-          git describe --tags --abbrev=0 > VERSION
+          git describe --tags --abbrev=0 > VERSION || printf "0.0.0-dev\n" > VERSION
           ./vendor/bin/box compile --no-interaction
           ls -la parity.phar 2>/dev/null || echo "PHAR build attempted"
         env:
@@ -56,3 +59,4 @@ jobs:
         run: |
           chmod +x parity.phar
           ./parity.phar --version
+          ./parity.phar check --format=json

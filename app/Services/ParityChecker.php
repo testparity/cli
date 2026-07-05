@@ -6,6 +6,9 @@ namespace App\Services;
 
 use App\Services\CoverageLinkers\CoverageLinkerRegistry;
 
+/**
+ * Specs: S004, S007
+ */
 class ParityChecker
 {
     public function __construct(

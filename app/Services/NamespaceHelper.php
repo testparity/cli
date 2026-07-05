@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Settings\Settings;
 
 /**
+ * Specs: S006, S007
+ *
  * Converts file paths to/from qualified class names.
  * Configurable via Settings for different languages and project structures.
  */
@@ -55,18 +57,28 @@ class NamespaceHelper
             $relativePath = substr($relativePath, 0, -strlen($this->sourceExtension));
         }
 
-        $segments = explode('/', $relativePath);
-        $first = $segments[0] ?? '';
+        $roots = $this->roots;
+        uksort($roots, fn (string $left, string $right): int => strlen($right) <=> strlen($left));
 
-        foreach ($this->roots as $dir => $namespace) {
-            if (strtolower($first) === strtolower($dir)) {
-                $rest = array_slice($segments, 1);
+        foreach ($roots as $dir => $namespace) {
+            $dir = trim(str_replace('\\', '/', $dir), '/');
+            if ($dir === '') {
+                continue;
+            }
 
-                return $namespace.$this->namespaceSeparator.implode($this->namespaceSeparator, $rest);
+            $matchesRoot = strtolower($relativePath) === strtolower($dir);
+            $matchesChild = str_starts_with(strtolower($relativePath), strtolower($dir).'/');
+            if ($matchesRoot || $matchesChild) {
+                $rest = $matchesRoot ? '' : substr($relativePath, strlen($dir) + 1);
+                $rest = str_replace('/', $this->namespaceSeparator, $rest);
+
+                return $rest !== '' ? $namespace.$this->namespaceSeparator.$rest : $namespace;
             }
         }
 
         // Default: capitalize first segment
+        $segments = explode('/', $relativePath);
+        $first = $segments[0] ?? '';
         $namespace = $first === 'app' ? 'App' : ($first === 'tests' ? 'Tests' : ucfirst($first));
         $rest = array_slice($segments, 1);
 

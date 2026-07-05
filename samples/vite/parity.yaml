@@ -1,0 +1,20 @@
+settings:
+  namespace_roots:
+    src: Src
+    tests: Tests
+  source_extension: ".ts"
+  test_suffix: ".test"
+  test_extension: ".ts"
+  namespace_separator: "."
+
+coverage_xml: cobertura.xml
+min_coverage: 80
+
+structure:
+  - name: "Vite Utilities"
+    paths:
+      source: "src"
+      test: "tests"
+    rules:
+      - minimum-coverage:
+          min: 80

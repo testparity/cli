@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\CoverageLinkers;
 
 /**
+ * Specs: S004
+ *
  * Extracts coverage declarations from PHP 8 attributes.
  * Supports: #[CoversClass(Foo::class)]
  */

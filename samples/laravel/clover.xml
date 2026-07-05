@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1">
+  <project timestamp="1">
+    <file name="app/Services/InvoiceTotal.php">
+      <metrics statements="1" coveredstatements="1"/>
+    </file>
+    <metrics files="1" statements="1" coveredstatements="1"/>
+  </project>
+</coverage>

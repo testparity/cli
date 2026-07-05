@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\CoverageLinkers;
 
 /**
+ * Specs: S004
+ *
  * Extracts coverage declarations from Pest test files.
  * Supports: ->covers(Foo::class), ->coversClass(Foo::class)
  *           covers(Foo::class) (standalone file-level declaration)

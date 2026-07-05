@@ -1,0 +1,19 @@
+# S005 Edge Cases
+
+| ID | Scenario | Expected Behavior |
+|----|----------|-------------------|
+| S005-EC-001 | Plugin directory (`.parity/plugins/` or `~/.parity/plugins/`) does not exist | `loadDirectory()` **MUST** return immediately without producing any warning. `is_dir()` check prevents glob on non-existent path. |
+| S005-EC-002 | Plugin file returns a non-`RuleInterface` object (e.g., `return new stdClass()`) | The loader **MUST** record a warning: `"Plugin {file} did not return a RuleInterface or array of rules"`. No rule is registered from this file. |
+| S005-EC-003 | Plugin file throws any `\Throwable` during `require` (syntax error, exception in top-level code) | The loader **MUST** catch the `\Throwable` and record a warning: `"Plugin {file} failed to load: {message}"`. Loading continues with the next file. |
+| S005-EC-004 | Plugin file returns an empty array (`return []`) | No rules are registered. No warning is produced (an empty array is a valid return value per S005-FR-006.b -- iteration simply yields no items). |
+| S005-EC-005 | Plugin file returns an array containing a mix of `RuleInterface` instances and non-conforming values (e.g., `[new ValidRule(), 'garbage', null, new AnotherValidRule()]`) | The loader **MUST** register the `RuleInterface` instances (`ValidRule`, `AnotherValidRule`) and silently skip non-conforming elements (`'garbage'`, `null`). No warning is produced for the skipped elements. |
+| S005-EC-006 | Composer package declares a class that exists but does not implement `RuleInterface` | The loader **MUST** record a warning: `"Composer plugin {package}: {class} does not implement RuleInterface"`. The class is not registered. |
+| S005-EC-007 | Composer package declares a class that does not exist (not autoloadable) | The loader **MUST** record a warning: `"Composer plugin {package}: class {class} not found"`. The check uses `class_exists()` before instantiation. |
+| S005-EC-008 | `vendor/composer/installed.json` contains malformed JSON (parse error) | `json_decode()` returns `null`, which fails the `is_array()` check. The loader **MUST** silently return without processing any packages or producing a warning. |
+| S005-EC-009 | `vendor/composer/installed.json` does not exist (no Composer dependencies, or `vendor/` missing) | `is_file()` check returns `false`. The loader **MUST** silently return. No warning produced. |
+| S005-EC-010 | `HOME` environment variable is unset or empty (all three sources: `$_SERVER['HOME']`, `$_ENV['HOME']`, `getenv('HOME')` fail) | The global-user plugin location **MUST** be skipped entirely. No warning produced. Project-local and Composer discovery proceed normally. |
+| S005-EC-011 | A plugin registers a rule with the same name as a built-in rule (e.g., `"test-exists"`) | The plugin's rule replaces the built-in in the registry (last-write-wins per S005-FR-009). No warning produced. All subsequent references to that name resolve to the plugin's implementation. |
+| S005-EC-012 | Plugin directory contains files with non-`.php` extensions (e.g., `.txt`, `.md`, `.bak`) | The `glob('*.php')` pattern **MUST** exclude non-PHP files. They are never loaded and no warning is produced. |
+| S005-EC-013 | Composer `extra.parity.rules` contains a non-string entry (e.g., integer, array, null) | The `is_string($className)` check **MUST** fail, and the loader **MUST** record a warning: `"Composer plugin {package}: class {value} not found"`. Processing continues with the next entry. |
+| S005-EC-014 | Plugin file returns `null` explicitly (`return null`) | `null` is neither a `RuleInterface` instance nor an array. The loader **MUST** record a warning: `"Plugin {file} did not return a RuleInterface or array of rules"`. |
+| S005-EC-015 | Composer package has `extra.parity.rules` set to an empty array (`[]`) | The `foreach` loop iterates zero times. No rules registered, no warnings produced. Package is silently skipped. |

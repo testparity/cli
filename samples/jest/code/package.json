@@ -1,0 +1,20 @@
+{
+  "name": "parity-sample-jest",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "jest --runInBand",
+    "coverage": "jest --coverage --runInBand"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "collectCoverageFrom": ["src/**/*.js"],
+    "coverageDirectory": ".",
+    "coverageReporters": ["clover", "text"],
+    "testMatch": ["**/tests/**/*.test.js"],
+    "watchman": false
+  }
+}

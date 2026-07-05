@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 class RuleRegistryTest extends TestCase
 {
+    // Specs: S002-FR-004, S002-FR-005, S010-FR-005
     private RuleRegistry $registry;
 
     protected function setUp(): void
@@ -119,7 +120,7 @@ class RuleRegistryTest extends TestCase
     {
         $this->registry->register(new TestExistsRule);
 
-        // { test-exists: null } — non-array value falls back to []
+        // { test-exists: null } - non-array value falls back to []
         $resolved = $this->registry->resolve([['test-exists' => null]]);
 
         expect($resolved)->toHaveCount(1);
@@ -185,6 +186,26 @@ class RuleRegistryTest extends TestCase
         $this->registry->resolve([['minimum-coverage' => ['min' => 'not-a-number']]]);
     }
 
+    public function test_resolve_throws_when_numeric_param_is_below_minimum(): void
+    {
+        $this->registry->register(new MinimumCoverageRule);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Rule 'minimum-coverage' parameter 'min' must be at least 0");
+
+        $this->registry->resolve([['minimum-coverage' => ['min' => -1]]]);
+    }
+
+    public function test_resolve_throws_when_numeric_param_is_above_maximum(): void
+    {
+        $this->registry->register(new MinimumCoverageRule);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Rule 'minimum-coverage' parameter 'min' must be at most 100");
+
+        $this->registry->resolve([['minimum-coverage' => ['min' => 101]]]);
+    }
+
     public function test_resolve_skips_non_string_non_array_configs(): void
     {
         // Should silently skip rather than throw
@@ -198,8 +219,12 @@ class RuleRegistryTest extends TestCase
     public function test_resolve_skips_dotted_param_keys(): void
     {
         // Register a rule whose parameter spec has a nested dotted key
-        $ruleWithDotted = new class implements \App\Rules\RuleInterface {
-            public function name(): string { return 'dotted-rule'; }
+        $ruleWithDotted = new class implements \App\Rules\RuleInterface
+        {
+            public function name(): string
+            {
+                return 'dotted-rule';
+            }
 
             public function parameters(): array
             {
@@ -213,11 +238,20 @@ class RuleRegistryTest extends TestCase
                 return \App\Rules\RuleResult::pass('ok');
             }
 
-            public function columnHeader(): ?string { return null; }
+            public function columnHeader(): ?string
+            {
+                return null;
+            }
 
-            public function formatCell(\App\Rules\RuleResult $r): string { return ''; }
+            public function formatCell(\App\Rules\RuleResult $r): string
+            {
+                return '';
+            }
 
-            public function isEnforced(): bool { return true; }
+            public function isEnforced(): bool
+            {
+                return true;
+            }
         };
 
         $this->registry->register($ruleWithDotted);

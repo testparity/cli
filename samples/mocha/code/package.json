@@ -1,0 +1,13 @@
+{
+  "name": "parity-sample-mocha",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "mocha \"tests/**/*.spec.js\"",
+    "coverage": "nyc --reporter=clover --reporter=text --report-dir . mocha \"tests/**/*.spec.js\""
+  },
+  "devDependencies": {
+    "mocha": "^11.0.0",
+    "nyc": "^17.0.0"
+  }
+}

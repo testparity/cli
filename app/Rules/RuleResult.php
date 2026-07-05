@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Rules;
 
 /**
+ * Specs: S002, S008
+ *
  * Result of evaluating a single rule against a source file.
  */
 class RuleResult

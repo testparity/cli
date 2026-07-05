@@ -7,6 +7,9 @@ namespace App\Rules;
 use App\Services\CoverageLinkers\CoverageLinkerRegistry;
 use App\Services\ParityChecker;
 
+/**
+ * Specs: S002, S004
+ */
 class EnforceCoverageLinkRule implements RuleInterface
 {
     public function name(): string

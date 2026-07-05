@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Rules;
 
 /**
+ * Specs: S002, S005, S006
+ *
  * Registry for parity rules. Rules are registered as container singletons
  * under the key "parity.rules.{name}" and can be resolved by name.
  */
@@ -121,6 +123,22 @@ class RuleRegistry
 
             if (in_array('array', $specParts, true) && ! is_array($value)) {
                 throw new \InvalidArgumentException("Rule '{$ruleName}' parameter '{$key}' must be an array");
+            }
+
+            foreach ($specParts as $part) {
+                if (str_starts_with($part, 'min:') && is_numeric($value)) {
+                    $minimum = (float) substr($part, 4);
+                    if ((float) $value < $minimum) {
+                        throw new \InvalidArgumentException("Rule '{$ruleName}' parameter '{$key}' must be at least {$minimum}");
+                    }
+                }
+
+                if (str_starts_with($part, 'max:') && is_numeric($value)) {
+                    $maximum = (float) substr($part, 4);
+                    if ((float) $value > $maximum) {
+                        throw new \InvalidArgumentException("Rule '{$ruleName}' parameter '{$key}' must be at most {$maximum}");
+                    }
+                }
             }
         }
     }

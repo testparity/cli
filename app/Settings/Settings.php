@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Settings;
 
 /**
+ * Specs: S006, S007
+ *
  * Resolved project settings from parity.yaml.
  * Framework and language agnostic — all behavior is driven by config.
  */
@@ -61,7 +63,7 @@ class Settings
 
     private static function resolveCoveragePaths(array $config): array
     {
-        $coverageXml = $config['coverage_xml'] ?? ['clover.xml', 'coverage.xml'];
+        $coverageXml = $config['coverage_xml'] ?? ['coverage-xml', 'clover.xml', 'cobertura.xml'];
 
         return is_array($coverageXml) ? $coverageXml : [$coverageXml];
     }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Specs: S006-FR-001, S006-FR-002, S007-FR-001, S010-FR-005
+
 namespace Tests\Unit\Settings;
 
 use App\Settings\Settings;
@@ -23,7 +25,7 @@ class SettingsTest extends TestCase
         expect($settings->minCoverage)->toBe(80.0);
         expect($settings->minCoverageGlobal)->toBeNull();
         expect($settings->minMatchedCoverage)->toBeNull();
-        expect($settings->coveragePaths)->toBe(['clover.xml', 'coverage.xml']);
+        expect($settings->coveragePaths)->toBe(['coverage-xml', 'clover.xml', 'cobertura.xml']);
     }
 
     // --- settings block ---
@@ -148,7 +150,7 @@ class SettingsTest extends TestCase
     {
         $settings = Settings::fromConfig([]);
 
-        expect($settings->coveragePaths)->toBe(['clover.xml', 'coverage.xml']);
+        expect($settings->coveragePaths)->toBe(['coverage-xml', 'clover.xml', 'cobertura.xml']);
     }
 
     // --- full realistic config ---

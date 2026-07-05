@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Rules;
 
 /**
+ * Specs: S002
+ *
  * Immutable context passed to every rule during evaluation.
  * Carries all the data a rule might need about a single source file.
  */

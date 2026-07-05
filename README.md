@@ -5,7 +5,7 @@ Structural parity and code coverage validation for any project. Ensures test fil
 ## Install
 
 ```bash
-composer global require ulties/parity
+composer global require testparity/parity
 ```
 
 Make sure Composer's global bin directory is in your `PATH`:
@@ -26,6 +26,49 @@ parity check   # Run validation
 parity check --format=json          # JSON output for CI
 parity check --config=path/to.yaml  # Custom config path
 ```
+
+Parity reads existing coverage reports; it does not run your test suite. Prefer detailed coverage formats with per-line or per-test attribution when your ecosystem supports them. For PHP, PHPUnit XML directories generated with `--coverage-xml` enable the richest parity checks; Clover XML and Cobertura XML are supported as portable fallbacks.
+
+## Development
+
+```bash
+composer install
+./vendor/bin/pint --test
+XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
+php parity check --format=json
+composer validate --strict
+```
+
+This repository dogfoods Parity through the root `parity.yaml`. The self-check expects PHPUnit XML coverage in `coverage-xml/`, so generate coverage before running `php parity check`.
+
+Build the PHAR manually with:
+
+```bash
+./vendor/bin/box compile --no-interaction
+php parity.phar --version
+```
+
+## Samples
+
+The `samples/` directory contains small PHP, Laravel-style PHP, Vite/TypeScript, AdonisJS-style TypeScript, and Rust fixtures, plus runnable PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo samples. Run them from this package root:
+
+```bash
+php parity check --config=samples/php/parity.yaml
+php parity check --config=samples/laravel/parity.yaml
+php parity check --config=samples/vite/parity.yaml
+php parity check --config=samples/adonisjs/parity.yaml
+php parity check --config=samples/rust/parity.yaml
+php parity check --config=samples/phpunit/parity.yaml
+php parity check --config=samples/pest/parity.yaml
+php parity check --config=samples/jest/parity.yaml
+php parity check --config=samples/mocha/parity.yaml
+php parity check --config=samples/vitest/parity.yaml
+php parity check --config=samples/cargo/parity.yaml
+```
+
+## Specs and Docs
+
+Public specs are indexed in `specs/README.md`. Feature docs live in `docs/`, with the complete code/config/plugin/output reference in `docs/REFERENCE.md`. The VitePress website lives in `../parity-website` during this workspace phase and mirrors the full specs tree under `/specs/`.
 
 ## Configuration
 
@@ -51,8 +94,8 @@ settings:
 
 ```yaml
 # Coverage file(s): first existing path is used
-# Supports Clover XML (single file) or PHPUnit XML (directory with index.xml)
-coverage_xml: [coverage-xml, clover.xml]
+# Supports PHPUnit XML, Clover XML, and Cobertura XML
+coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
 
 # Global thresholds
 min_coverage: 80
