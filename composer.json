@@ -6,8 +6,8 @@
     "type": "library",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/testparity/parity/issues",
-        "source": "https://github.com/testparity/parity"
+        "issues": "https://github.com/testparity/cli/issues",
+        "source": "https://github.com/testparity/cli"
     },
     "authors": [
         {
@@ -15,7 +15,7 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "laravel-zero/framework": "^12.0.2",
         "symfony/yaml": "^8.0"
     },

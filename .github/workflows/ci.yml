@@ -18,7 +18,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json
           coverage: xdebug
 
@@ -28,9 +28,9 @@ jobs:
           path: |
             ~/.composer/cache
             vendor
-          key: composer-php-8.3-${{ hashFiles('composer.lock') }}
+          key: composer-php-8.4-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            composer-php-8.3-
+            composer-php-8.4-
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
