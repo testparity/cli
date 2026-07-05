@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup PHP
-        uses: php-actions/setup-php@v6
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json
@@ -28,12 +28,12 @@ jobs:
           path: |
             ~/.composer/cache
             vendor
-          key: composer-${{ runner.php-version }}-${{ hashFiles('composer.json') }}
+          key: composer-php-8.3-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            composer-${{ runner.php-version }}-
+            composer-php-8.3-
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest
+        run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run Pint
         run: ./vendor/bin/pint --test
