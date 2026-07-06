@@ -1,5 +1,10 @@
 # Parity
 
+[![CI](https://github.com/testparity/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/testparity/cli/actions/workflows/ci.yml)
+[![Latest Stable Version](https://poser.pugx.org/testparity/parity/v/stable)](https://packagist.org/packages/testparity/parity)
+[![Total Downloads](https://poser.pugx.org/testparity/parity/downloads)](https://packagist.org/packages/testparity/parity)
+[![License](https://poser.pugx.org/testparity/parity/license)](https://packagist.org/packages/testparity/parity)
+
 Structural parity and code coverage validation for any project. Ensures test files exist, declare what they cover, and meet coverage thresholds — without running tests.
 
 ## Install
@@ -66,7 +71,7 @@ Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, A
 | Mocha | https://github.com/testparity/mocha-sample |
 | Vitest | https://github.com/testparity/vitest-sample |
 
-Each sample proves the same pattern: global coverage can be 80% while a specific file has 70% all-test coverage and only 40% coverage from its matching test. See `docs/SAMPLES.md` and `docs/WHY-GLOBAL-COVERAGE-LIES.md`.
+Each sample proves the same pattern: global coverage can be 80% while a specific file has 70% all-test coverage and only 40% coverage from its matching test. See `docs/SAMPLES.md`, `docs/WHY-GLOBAL-COVERAGE-LIES.md`, and `docs/PARITY-COVERAGE-JSON.md`.
 
 The local `samples/` directory contains the original fixtures. Run them from this package root:
 

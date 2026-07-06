@@ -54,4 +54,4 @@ The samples use `parity-coverage.json`, a language-neutral coverage attribution 
 }
 ```
 
-Use PHPUnit XML directories when your PHP test runner can generate them directly. Use `parity-coverage.json` when you want per-test attribution from another ecosystem or a custom converter.
+Use PHPUnit XML directories when your PHP test runner can generate them directly. Use `parity-coverage.json` when you want per-test attribution from another ecosystem or a custom converter. See `docs/PARITY-COVERAGE-JSON.md` for the full schema and converter example.

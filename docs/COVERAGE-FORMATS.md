@@ -63,6 +63,8 @@ Minimal Parity JSON example:
 }
 ```
 
+See `docs/PARITY-COVERAGE-JSON.md` for the full schema and a JavaScript converter example.
+
 Then run:
 
 ```bash
