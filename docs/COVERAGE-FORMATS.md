@@ -13,16 +13,22 @@ PHPUnit/Pest produce several coverage report formats. Only one stores **which te
 - **Cobertura XML** (many JS, Rust, Python, Go, and CI coverage tools): single file; per-file % and global %. Useful as a portable cross-language fallback.
 - **PHPUnit XML** (PHPUnit/Pest `--coverage-xml=<dir>`): directory with `index.xml` and per-file XML. Parity uses it for per-file %, global %, and **which tests cover each file** (shown in the "Covered by" column).
 
-Use `coverage_xml` as a string or array; parity uses the first existing file or directory (with `index.xml`). Other formats (Crap4j, PHP, Text, HTML) are not read.
+Use `coverage_xml` as a string or array; parity uses the first existing file or directory (with `index.xml`). Put the most detailed report first and the most portable fallback last:
+
+```yaml
+coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+```
+
+This is useful when local development can generate attribution data but CI only emits a portable artifact, or when different jobs generate different report formats. Other formats (Crap4j, PHP, Text, HTML, LCOV) are not read directly.
 
 ## Per-test coverage (which test did which coverage)
 
 | Format | Option | Parity supports? | Per-test data? | Notes |
 |--------|--------|------------------|----------------|--------|
 | **Parity JSON** | `parity-coverage.json` | **Yes** | **Yes** | Language-neutral file for custom converters and non-PHP ecosystems. |
-| **Clover** | `--coverage-clover=<file>` | **Yes** | No | Single XML file; per-line **count** only (no test names). Parity uses this for per-file % and global %. |
+| **Clover** | `--coverage-clover=<file>` | **Yes** | No | Single XML file; per-line **count** only (no test names). Common in PHP, Jest, Mocha/NYC, Vitest, and TypeScript projects. |
 | **PHPUnit XML** | `--coverage-xml=<dir>` | **Yes** | **Yes** | Directory with `index.xml` and per-file XML. Parity shows per-file %, global %, and "Covered by" test names. |
-| **Cobertura** | Tool-specific, often `cobertura.xml` | **Yes** | No | Portable per-file/line metrics across many ecosystems; no test names. |
+| **Cobertura** | Tool-specific, often `cobertura.xml` | **Yes** | No | Portable per-file/line metrics across Rust, Python, Go, JVM, JavaScript, TypeScript, and CI tools; no test names. |
 | Crap4j | `--coverage-crap4j=<file>` | No | No | CRAP metrics only. |
 | PHP | `--coverage-php=<file>` | No | No | Serialized PHP; not per-test. |
 | Text | `--coverage-text` | No | No | Console summary. |

@@ -5,7 +5,9 @@
 [![Total Downloads](https://poser.pugx.org/testparity/parity/downloads)](https://packagist.org/packages/testparity/parity)
 [![License](https://poser.pugx.org/testparity/parity/license)](https://packagist.org/packages/testparity/parity)
 
-Structural parity and code coverage validation for any project. Ensures test files exist, declare what they cover, and meet coverage thresholds — without running tests.
+Structural parity and code coverage validation for any project. Parity ensures application files have belonging tests, verifies coverage ownership, and catches files whose direct tests are weaker than global coverage suggests.
+
+Global coverage answers "did the test suite touch enough code?" Parity answers "did the test that owns this file cover enough of this file?"
 
 ## Install
 
@@ -32,7 +34,20 @@ parity check --format=json          # JSON output for CI
 parity check --config=path/to.yaml  # Custom config path
 ```
 
-Parity reads existing coverage reports; it does not run your test suite. Prefer detailed coverage formats with per-line or per-test attribution when your ecosystem supports them. For PHP, PHPUnit XML directories generated with `--coverage-xml` enable the richest parity checks; Clover XML and Cobertura XML are supported as portable fallbacks.
+Parity reads existing coverage reports; it does not run your test suite. Prefer detailed coverage formats with per-line or per-test attribution when your ecosystem supports them.
+
+```yaml
+coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+```
+
+`coverage_xml` can be a single path or an ordered list. Parity uses the first existing path, so teams can prefer attribution-rich reports and fall back to portable reports in CI:
+
+| Format | Best for | Matched coverage |
+| --- | --- | --- |
+| Parity JSON | Language-neutral per-test attribution from custom converters | Yes |
+| PHPUnit XML directory | PHP, PHPUnit, Pest, and line-level test attribution | Yes |
+| Clover XML | PHP, JavaScript, TypeScript, and common coverage tools | No |
+| Cobertura XML | Rust, Python, Go, JavaScript, TypeScript, JVM, and CI coverage tools | No |
 
 ## Development
 
@@ -55,23 +70,23 @@ php parity.phar --version
 
 ## Samples
 
-Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo:
+Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo. Each sample installs the public Packagist package in GitHub Actions, runs `parity check`, and documents the same proof shape: global coverage can be 80% while the owning test only covers 40% of one file.
 
-| Sample | Repository |
-|--------|------------|
-| PHP | https://github.com/testparity/php-sample |
-| Laravel | https://github.com/testparity/laravel-sample |
-| TypeScript | https://github.com/testparity/typescript-sample |
-| AdonisJS | https://github.com/testparity/adonisjs-sample |
-| Rust | https://github.com/testparity/rust-sample |
-| Cargo | https://github.com/testparity/cargo-sample |
-| PHPUnit | https://github.com/testparity/phpunit-sample |
-| Pest | https://github.com/testparity/pest-sample |
-| Jest | https://github.com/testparity/jest-sample |
-| Mocha | https://github.com/testparity/mocha-sample |
-| Vitest | https://github.com/testparity/vitest-sample |
+| Sample | Language/framework | Test runner | Repository |
+|--------|--------------------|-------------|------------|
+| PHP | Plain PHP | Fixture coverage | https://github.com/testparity/php-sample |
+| Laravel | Laravel-style PHP | Fixture coverage | https://github.com/testparity/laravel-sample |
+| TypeScript | TypeScript utility | Fixture coverage | https://github.com/testparity/typescript-sample |
+| AdonisJS | AdonisJS-style TypeScript | Fixture coverage | https://github.com/testparity/adonisjs-sample |
+| Rust | Plain Rust | Fixture coverage | https://github.com/testparity/rust-sample |
+| Cargo | Cargo project | Cargo | https://github.com/testparity/cargo-sample |
+| PHPUnit | PHP | PHPUnit | https://github.com/testparity/phpunit-sample |
+| Pest | PHP | Pest | https://github.com/testparity/pest-sample |
+| Jest | JavaScript | Jest | https://github.com/testparity/jest-sample |
+| Mocha | JavaScript | Mocha + NYC | https://github.com/testparity/mocha-sample |
+| Vitest | TypeScript | Vitest | https://github.com/testparity/vitest-sample |
 
-Each sample proves the same pattern: global coverage can be 80% while a specific file has 70% all-test coverage and only 40% coverage from its matching test. See `docs/SAMPLES.md`, `docs/WHY-GLOBAL-COVERAGE-LIES.md`, and `docs/PARITY-COVERAGE-JSON.md`.
+See `docs/SAMPLES.md`, `docs/WHY-GLOBAL-COVERAGE-LIES.md`, and `docs/PARITY-COVERAGE-JSON.md`.
 
 The local `samples/` directory contains the original fixtures. Run them from this package root:
 

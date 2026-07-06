@@ -1,0 +1,31 @@
+name: Framework or language support
+description: Request support docs, samples, or converters for a language, framework, or test runner.
+title: "[Support]: "
+labels: ["framework-support"]
+body:
+  - type: input
+    id: ecosystem
+    attributes:
+      label: Ecosystem
+      placeholder: "Python + pytest, Go + gotestsum, Java + JUnit, Ruby + RSpec"
+    validations:
+      required: true
+  - type: textarea
+    id: coverage
+    attributes:
+      label: Coverage output available
+      description: Which coverage files can your tool emit? Include links or examples if known.
+      placeholder: "Cobertura XML, Clover XML, LCOV, custom JSON, per-test attribution plugin"
+    validations:
+      required: true
+  - type: textarea
+    id: mapping
+    attributes:
+      label: Source/test mapping
+      description: How do source files usually map to their belonging tests?
+      placeholder: "src/foo.ts -> tests/foo.test.ts"
+  - type: textarea
+    id: goal
+    attributes:
+      label: What should Parity prove?
+      placeholder: "Per-file coverage threshold, matched coverage, incidental coverage visibility, covers-link enforcement"

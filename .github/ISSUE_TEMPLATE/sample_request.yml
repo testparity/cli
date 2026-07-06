@@ -1,0 +1,30 @@
+name: Sample request
+description: Request a runnable public sample repository.
+title: "[Sample]: "
+labels: ["sample"]
+body:
+  - type: input
+    id: sample
+    attributes:
+      label: Requested sample
+      placeholder: "pytest-sample, go-sample, rails-sample, nextjs-sample"
+    validations:
+      required: true
+  - type: textarea
+    id: tools
+    attributes:
+      label: Test and coverage tools
+      placeholder: "Test runner, coverage command, coverage file formats, CI expectations"
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Coverage proof shape
+      description: What should the sample demonstrate?
+      placeholder: "80% global coverage, 70% file coverage, 40% matched coverage from the owning test"
+  - type: textarea
+    id: links
+    attributes:
+      label: References
+      placeholder: "Official docs or example projects"

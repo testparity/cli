@@ -1,0 +1,105 @@
+name: Release smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * 1'
+
+jobs:
+  public-install:
+    name: Public Packagist install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, fileinfo, json
+          coverage: none
+
+      - name: Install Parity from Packagist
+        run: |
+          composer global require testparity/parity --prefer-dist --no-progress --no-interaction
+          composer global config bin-dir --absolute >> "$GITHUB_PATH"
+
+      - name: Build temporary sample project
+        run: |
+          mkdir -p /tmp/parity-smoke/src /tmp/parity-smoke/tests
+          cd /tmp/parity-smoke
+
+          cat > src/InvoiceTotal.php <<'PHP'
+          <?php
+
+          final class InvoiceTotal
+          {
+              public function cents(array $lines): int
+              {
+                  return array_sum($lines);
+              }
+          }
+          PHP
+
+          cat > tests/InvoiceTotalTest.php <<'PHP'
+          <?php
+
+          final class InvoiceTotalTest
+          {
+              public function coversPrimaryBehavior(): void
+              {
+              }
+          }
+          PHP
+
+          cat > parity-coverage.json <<'JSON'
+          {
+            "version": 1,
+            "globalPercent": 100,
+            "files": [
+              {
+                "path": "src/InvoiceTotal.php",
+                "coveragePercent": 100,
+                "totalExecutableLines": 3,
+                "lines": [
+                  { "line": 5, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] },
+                  { "line": 6, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] },
+                  { "line": 7, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] }
+                ]
+              }
+            ]
+          }
+          JSON
+
+          cat > parity.yaml <<'YAML'
+          settings:
+            namespace_roots:
+              src: App
+              tests: Tests
+            source_extension: ".php"
+            test_suffix: "Test"
+            test_extension: ".php"
+            namespace_separator: "\\"
+
+          coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+          min_coverage: 90
+          min_coverage_global: 90
+          min_matched_coverage: 90
+
+          structure:
+            - name: "Smoke"
+              paths:
+                source: "src"
+                test: "tests"
+              rules:
+                - minimum-coverage:
+                    min: 90
+                - matched-coverage:
+                    min: 90
+                - coverage-attribution
+          YAML
+
+      - name: Run installed Parity
+        working-directory: /tmp/parity-smoke
+        run: |
+          parity --version
+          parity check --format=json
