@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://testparity.com/brand/testparity-readme-banner.jpg" alt="TestParity" width="100%">
+</p>
+
 # Parity
 
 [![CI](https://github.com/testparity/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/testparity/cli/actions/workflows/ci.yml)
