@@ -16,7 +16,7 @@ settings:
   test_extension: ".php"
   namespace_separator: "\\"
 
-coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
+coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 min_coverage: 80
 min_coverage_global: 80
 
@@ -33,6 +33,6 @@ structure:
 
 ## Multi-Language Projects
 
-Parity's structural checks are language agnostic when the project supplies matching file extensions, test suffixes, and coverage files. The `samples/` directory contains minimal PHP, Laravel-style PHP, Vite/TypeScript, AdonisJS-style TypeScript, and Rust configurations, plus runnable tool samples for PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo.
+Parity's structural checks are language agnostic when the project supplies matching file extensions, test suffixes, and coverage files. The public sample repositories listed in `docs/SAMPLES.md` cover PHP, Laravel-style PHP, Vite/TypeScript, AdonisJS-style TypeScript, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo.
 
-Use language-specific coverage tooling to produce a supported report, then point `coverage_xml` at that report. Prefer high-detail formats first, for example `coverage_xml: [coverage-xml, clover.xml, cobertura.xml]`, so Parity uses PHPUnit XML attribution when available and falls back to portable single-file formats otherwise.
+Use language-specific coverage tooling to produce a supported report, then point `coverage_xml` at that report. Prefer high-detail formats first, for example `coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]`, so Parity uses language-neutral or PHPUnit XML attribution when available and falls back to portable single-file formats otherwise.

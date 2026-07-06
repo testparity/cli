@@ -50,7 +50,25 @@ php parity.phar --version
 
 ## Samples
 
-The `samples/` directory contains small PHP, Laravel-style PHP, Vite/TypeScript, AdonisJS-style TypeScript, and Rust fixtures, plus runnable PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo samples. Run them from this package root:
+Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo:
+
+| Sample | Repository |
+|--------|------------|
+| PHP | https://github.com/testparity/php-sample |
+| Laravel | https://github.com/testparity/laravel-sample |
+| TypeScript | https://github.com/testparity/typescript-sample |
+| AdonisJS | https://github.com/testparity/adonisjs-sample |
+| Rust | https://github.com/testparity/rust-sample |
+| Cargo | https://github.com/testparity/cargo-sample |
+| PHPUnit | https://github.com/testparity/phpunit-sample |
+| Pest | https://github.com/testparity/pest-sample |
+| Jest | https://github.com/testparity/jest-sample |
+| Mocha | https://github.com/testparity/mocha-sample |
+| Vitest | https://github.com/testparity/vitest-sample |
+
+Each sample proves the same pattern: global coverage can be 80% while a specific file has 70% all-test coverage and only 40% coverage from its matching test. See `docs/SAMPLES.md` and `docs/WHY-GLOBAL-COVERAGE-LIES.md`.
+
+The local `samples/` directory contains the original fixtures. Run them from this package root:
 
 ```bash
 php parity check --config=samples/php/parity.yaml
@@ -94,8 +112,8 @@ settings:
 
 ```yaml
 # Coverage file(s): first existing path is used
-# Supports PHPUnit XML, Clover XML, and Cobertura XML
-coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
+# Supports Parity JSON, PHPUnit XML, Clover XML, and Cobertura XML
+coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 
 # Global thresholds
 min_coverage: 80

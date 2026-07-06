@@ -10,6 +10,7 @@ use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
 use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
+use App\Services\ParityJsonCoverageReader;
 use App\Services\ParityChecker;
 use App\Services\PhpUnitXmlCoverageReader;
 use App\Services\PluginLoader;
@@ -469,16 +470,17 @@ class CheckCommand extends Command
         $minCoverageGlobal = $settings->minCoverageGlobal;
 
         $coveragePath = null;
-        $isPhpUnitXml = false;
+        $hasAttributionCoverage = false;
         foreach ($coverageCandidates as $candidate) {
             $path = $projectRoot.'/'.ltrim((string) $candidate, '/');
             if (is_file($path)) {
                 $coveragePath = $path;
+                $hasAttributionCoverage = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json';
                 break;
             }
             if (is_dir($path) && is_file($path.'/index.xml')) {
                 $coveragePath = $path;
-                $isPhpUnitXml = true;
+                $hasAttributionCoverage = true;
                 break;
             }
         }
@@ -496,7 +498,15 @@ class CheckCommand extends Command
         $totalExecutable = [];
         $globalPercent = null;
 
-        if ($isPhpUnitXml) {
+        if ($coveragePath !== null && is_file($coveragePath) && strtolower(pathinfo($coveragePath, PATHINFO_EXTENSION)) === 'json') {
+            $jsonReader = new ParityJsonCoverageReader;
+            $result = $jsonReader->read($coveragePath, $projectRoot);
+            $coverageMap = $result['coverage'];
+            $testsByFile = $result['testsByFile'];
+            $lineCoverage = $result['lineCoverage'] ?? [];
+            $totalExecutable = $result['totalExecutable'] ?? [];
+            $globalPercent = $result['globalPercent'];
+        } elseif ($hasAttributionCoverage) {
             $phpUnitReader = new PhpUnitXmlCoverageReader;
             $result = $phpUnitReader->read($coveragePath, $projectRoot);
             $coverageMap = $result['coverage'];
@@ -509,6 +519,8 @@ class CheckCommand extends Command
             $coverageMap = $coverageReader->read($coveragePath, $projectRoot);
             $globalPercent = $minCoverageGlobal !== null ? $coverageReader->readGlobalCoverage($coveragePath) : null;
         }
+
+        $isPhpUnitXml = $hasAttributionCoverage;
 
         return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'isPhpUnitXml');
     }
