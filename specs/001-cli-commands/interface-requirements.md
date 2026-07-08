@@ -8,7 +8,7 @@ S001-IF-001 [P1] The `check` command **MUST** accept the following flags with ex
 |------|------|---------|-------------|
 | `--config=<path>` | string (optional) | `./parity.yaml` | Absolute or relative path to a `parity.yaml` config file. When provided, the project root is derived as the parent directory of this file. |
 | `--format=<value>` | enum: `table`, `json` | `table` | Controls output format. `table` produces human-readable console tables. `json` produces a single JSON document. |
-| `--show-tests` | boolean (flag) | `false` | When present, shows individual test method names instead of counts in the table. Only effective with PHPUnit XML coverage. |
+| `--show-tests` | boolean (flag) | `false` | When present, shows individual test method names instead of counts in the table. Only effective when the selected coverage source includes attribution data. |
 
 S001-IF-001.a No positional arguments **MUST** be accepted.
 S001-IF-001.b Unknown flags **MUST** be rejected by the Symfony Console framework with an appropriate error (this is default framework behavior and does not require custom handling).

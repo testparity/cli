@@ -4,7 +4,7 @@ Specs: S003
 
 `parity-coverage.json` is a language-neutral attribution format for ecosystems whose native coverage output does not include which test covered which line.
 
-Use it when Clover or Cobertura can prove aggregate file coverage, but you also want `matched-coverage` and `coverage-attribution`.
+Use it when native runner output cannot express which test covered which line, but you still want `matched-coverage` and `coverage-attribution`.
 
 ## Schema
 
@@ -42,10 +42,10 @@ Fields:
 
 ## Configuration
 
-Put `parity-coverage.json` first so Parity uses attribution data when available and falls back to portable aggregate formats otherwise.
+Put `parity-coverage.json` near the front so Parity uses attribution data when available and falls back to portable aggregate formats otherwise.
 
 ```yaml
-coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 
 structure:
   - name: "Utilities"
@@ -99,6 +99,8 @@ Then run:
 ```bash
 parity check --config=parity.yaml --format=json
 ```
+
+If you want Parity itself to generate attribution by running one expected test file at a time, configure `parity test` and let it write `.parity/per-test/`, then list that directory first in `coverage_xml`.
 
 ## Reading The Output
 

@@ -14,6 +14,7 @@ This matrix records the current public-release evidence for each active spec. A 
 | S008 Output formats | `app/Commands/CheckCommand.php`, `app/Rules/*Rule.php` formatting methods | `tests/Feature/CheckCommandConfigTest.php`, sample JSON runs, rule output tests | `docs/CLI.md`, website CI/CLI guide | Implemented for table and JSON; broader JSON schema assertions still desirable |
 | S009 Documentation system | `docs/`, `README.md`, `../parity-website/guide/`, `../parity-website/.vitepress/config.ts` | `npm run build` in `parity-website`; prior desktop/mobile browser verification | Website guide pages and specs page | Implemented for current guide set |
 | S010 Testing, CI, binary, samples | `.github/workflows/ci.yml`, `box.json`, `dev/`, `samples/`, `parity.yaml` | `composer validate --strict`, Pint, Pest with coverage, `php parity check --format=json`, sample feature tests, website build | `docs/RELEASE.md`, `samples/README.md` | Mostly implemented; final PHAR smoke and remote CI still need release-time confirmation |
+| S011 Parity test and per-test reports | `app/Commands/TestCommand.php`, `app/Services/ParityPerTestCoverageReader.php`, `app/Services/ParityTestArtifactNormalizer.php` | `tests/Feature/TestCommandTest.php`, `tests/Unit/Services/ParityPerTestCoverageReaderTest.php` | `docs/CONFIGURATION.md`, `docs/COVERAGE-FORMATS.md`, website coverage/configuration guides | Implemented for isolated test execution, per-test manifest writing, and delegated check flow |
 
 ## Verification Gates
 

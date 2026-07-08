@@ -10,21 +10,21 @@
 
 ## Overview
 
-The Coverage Readers module is responsible for ingesting pre-generated XML coverage reports and normalizing them into a uniform data structure that downstream rules and the CLI can consume. Parity never executes tests; it reads existing coverage files produced by language-native test and coverage tools.
+The Coverage Readers module is responsible for ingesting pre-generated coverage reports and normalizing them into a uniform data structure that downstream rules and the CLI can consume. Parity can either read native coverage artifacts directly or read Parity-native attribution artifacts produced by `parity test`.
 
-Three coverage formats are supported: **Clover XML** (a single file with per-file statement coverage), **Cobertura XML** (a portable single-file format used by many ecosystems), and **PHPUnit XML** (a directory of per-class XML files with per-line, per-test attribution). The format is detected automatically based on whether the configured path points to a file or a directory containing `index.xml`. When multiple paths are configured, the first existing match wins.
+Five coverage formats are supported: **Parity per-test reports** (a directory with `index.json` and one normalized report per test), **Parity JSON** (a language-neutral JSON file), **Clover XML** (a single file with per-file statement coverage), **Cobertura XML** (a portable single-file format used by many ecosystems), and **PHPUnit XML** (a directory of per-class XML files with per-line, per-test attribution). The format is detected automatically based on whether the configured path points to a file or to a directory containing `index.json` or `index.xml`. When multiple paths are configured, the first existing match wins.
 
-The data produced by these readers feeds directly into the rules system (S002). Clover and Cobertura XML provide enough data for the `minimum-coverage` rule. PHPUnit XML additionally enables `matched-coverage`, `coverage-attribution`, and the `--show-tests` CLI flag (S001) by exposing which specific test methods covered each line of each source file.
+The data produced by these readers feeds directly into the rules system (S002). Clover and Cobertura XML provide enough data for the `minimum-coverage` rule. Parity per-test reports, Parity JSON, and PHPUnit XML additionally enable `matched-coverage`, `coverage-attribution`, and the `--show-tests` CLI flag (S001) by exposing which specific tests covered each line of each source file.
 
 ## User Scenarios
 
 S003-US-001 [P1] As a developer running `parity check`, I want per-file coverage percentages read from my Clover XML report so that the `minimum-coverage` rule can evaluate each source file.
 
-S003-US-002 [P1] As a developer using PHPUnit XML coverage, I want per-test attribution data so that `matched-coverage` can distinguish coverage from the matching test vs. incidental coverage from other tests.
+S003-US-002 [P1] As a developer using an attribution-capable coverage format, I want per-test attribution data so that `matched-coverage` can distinguish coverage from the matching test vs. incidental coverage from other tests.
 
 S003-US-003 [P2] As a CI pipeline operator, I want Parity to auto-detect the coverage format from the configured path so that I do not need to specify the format explicitly.
 
-S003-US-004 [P2] As a developer, I want to configure multiple fallback coverage paths so that PHPUnit XML is used when available and Clover XML is used as a fallback.
+S003-US-004 [P2] As a developer, I want to configure multiple fallback coverage paths so that attribution-capable coverage is used when available and aggregate-only coverage is used as a fallback.
 
 S003-US-006 [P1] As a developer in a non-PHP ecosystem, I want to use Cobertura XML so that Parity can enforce per-file coverage for JavaScript, TypeScript, Rust, Python, Go, and other projects that commonly emit Cobertura.
 
@@ -96,5 +96,5 @@ S003-US-005 [P1] As a developer, I want clear error messages when coverage files
 
 - **Depends on:** S006 (Configuration -- `coverage_xml` path list, `min_coverage_global`)
 - **Required by:** S002 (Rules System -- `minimum-coverage`, `matched-coverage`, `coverage-attribution` rules consume the coverage data structures produced here)
-- **Required by:** S001 (CLI Commands -- `--show-tests` flag relies on `testsByFile` from PHPUnit XML reader)
+- **Required by:** S001 (CLI Commands -- `--show-tests` flag relies on `testsByFile` from any attribution-capable reader)
 - **Required by:** S004 (Coverage Linkers -- consumes per-line coverage data for linking)

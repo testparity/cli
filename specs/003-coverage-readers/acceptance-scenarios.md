@@ -26,7 +26,7 @@
 **Given** `coverage_xml` is configured as `['coverage-xml', 'clover.xml', 'cobertura.xml']`
 **And** `coverage-xml/` is a directory containing `index.xml`
 **When** `loadCoverageData()` is called
-**Then** the PHPUnit XML reader is used (`isPhpUnitXml` is `true`)
+**Then** the PHPUnit XML reader is used (`hasAttributionCoverage` is `true`)
 **And** per-test attribution data is populated
 
 ### S003-AS-004 Multi-path fallback selects first existing [P1]
@@ -35,7 +35,7 @@
 **And** `coverage-xml/` does not exist
 **And** `clover.xml` exists as a valid Clover file
 **When** `loadCoverageData()` is called
-**Then** the Clover reader is used (`isPhpUnitXml` is `false`)
+**Then** the Clover reader is used (`hasAttributionCoverage` is `false`)
 **And** `testsByFile` is an empty array
 
 ### S003-AS-005 Per-test attribution populates testsByFile [P1]

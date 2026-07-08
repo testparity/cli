@@ -155,9 +155,9 @@ S008-FR-021.b The `RuleResult::$value` and `RuleResult::$error` fields **MUST** 
 
 ### Show Tests Flag
 
-S008-FR-022 [P2] When `--show-tests` is present and PHPUnit XML coverage data is in use, the table output **SHOULD** display individual test method names instead of test counts in the coverage attribution column.
+S008-FR-022 [P2] When `--show-tests` is present and attribution-capable coverage data is in use, the table output **SHOULD** display individual test method names instead of test counts in the coverage attribution column.
 S008-FR-022.a The `--show-tests` flag **MUST** only affect table mode rendering. JSON output always includes test data when available, regardless of this flag.
-S008-FR-022.b When coverage data is not from PHPUnit XML (e.g., Clover XML), the `--show-tests` flag **MUST** have no observable effect.
+S008-FR-022.b When coverage data does not include attribution (e.g., Clover XML or Cobertura XML), the `--show-tests` flag **MUST** have no observable effect.
 
 ### CoverageAttributionRule Dual-Column Rendering
 
@@ -177,7 +177,7 @@ S008-FR-024.c In JSON mode, global coverage **MUST** be conveyed only via the `g
 
 ### Unmatched Test Warnings
 
-S008-FR-025 [P2] In table mode with PHPUnit XML coverage data, the command **SHOULD** warn about tests found in coverage data that do not match any configured structure entry.
+S008-FR-025 [P2] In table mode with attribution-capable coverage data, the command **SHOULD** warn about tests found in coverage data that do not match any configured structure entry.
 S008-FR-025.a The warning **MUST** be prefixed with: `Tests that did not match any structure (e.g. wrong path/namespace):`.
 S008-FR-025.b Each unmatched test path **MUST** be listed indented with two spaces, in yellow.
 S008-FR-025.c This warning **MUST NOT** appear in JSON mode.

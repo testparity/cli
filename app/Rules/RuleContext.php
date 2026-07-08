@@ -26,7 +26,7 @@ class RuleContext
         public readonly string $projectRoot,
         /** Expected test class name (e.g. "FooServiceTest") for matching */
         public readonly string $expectedTestClassName = '',
-        /** Per-line coverage data: [lineNum => [testName, ...]] (PHPUnit XML only) */
+        /** Per-line coverage data: [lineNum => [testName, ...]] from any attribution-capable format */
         public readonly array $lineCoverage = [],
         /** Total executable lines for the source file */
         public readonly int $totalExecutableLines = 0,

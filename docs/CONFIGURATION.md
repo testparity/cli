@@ -16,7 +16,7 @@ settings:
   test_extension: ".php"
   namespace_separator: "\\"
 
-coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 min_coverage: 80
 min_coverage_global: 80
 
@@ -35,7 +35,7 @@ structure:
 
 Parity's structural checks are language agnostic when the project supplies matching file extensions, test suffixes, and coverage files. The public sample repositories listed in `docs/SAMPLES.md` cover PHP, Laravel-style PHP, Vite/TypeScript, AdonisJS-style TypeScript, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo.
 
-Use language-specific coverage tooling to produce a supported report, then point `coverage_xml` at that report. Prefer high-detail formats first, for example `coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]`, so Parity uses language-neutral or PHPUnit XML attribution when available and falls back to portable single-file formats otherwise.
+Use language-specific coverage tooling to produce a supported report, then point `coverage_xml` at that report. Prefer attribution-capable formats first, for example `coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]`, so Parity uses native or normalized per-test attribution when available and falls back to portable single-file formats otherwise.
 
 Common starting points:
 
@@ -47,3 +47,20 @@ Common starting points:
 | JavaScript + Mocha/NYC | `clover.xml`, custom `parity-coverage.json` | Clover supports per-file thresholds only. |
 | TypeScript + Vitest | `clover.xml`, `cobertura.xml`, custom `parity-coverage.json` | Works with Vite-style layouts by changing extensions and suffixes. |
 | Rust + Cargo | `cobertura.xml`, custom `parity-coverage.json` | Cobertura is the common portable aggregate format. |
+
+## `parity test`
+
+When a project cannot emit native per-test attribution, configure `parity test` to run each expected test file individually and write Parity's native per-test report directory.
+
+```yaml
+test:
+  command: "./vendor/bin/pest {test_abs} --coverage-clover={coverage}"
+  coverage: ".parity/tmp/{slug}.xml"
+  reports: ".parity/per-test"
+```
+
+Then put that directory first in `coverage_xml`:
+
+```yaml
+coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+```

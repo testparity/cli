@@ -18,7 +18,7 @@ settings:
 
 # ── Coverage Source ────────────────────────────────────────────
 coverage_xml: <string | list<string>>
-  # Default: [coverage-xml, clover.xml, cobertura.xml]
+  # Default: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
   # Paths relative to project root
   # First existing file or directory (with index.xml) is used
 
@@ -212,7 +212,7 @@ settings:
   test_extension: ".php"
   namespace_separator: "\\"
 
-coverage_xml: [coverage-xml, clover.xml, cobertura.xml]
+coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 
 min_coverage: 80
 

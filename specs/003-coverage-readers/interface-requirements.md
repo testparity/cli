@@ -110,11 +110,11 @@ S003-IF-006 [P1] The `loadCoverageData()` method in `CheckCommand` **MUST** retu
     'lineCoverage'    => array<string, array<int, list<string>>>,  // file path => line => tests
     'totalExecutable' => array<string, int>,       // file path => executable line count
     'globalPercent'   => float|null,               // project-level coverage %
-    'isPhpUnitXml'    => bool,                     // true if PHPUnit XML format was used
+    'hasAttributionCoverage' => bool,              // true if the selected format exposes per-test line attribution
 ]
 ```
 
 S003-IF-006.a When Clover XML is used, `testsByFile`, `lineCoverage`, and `totalExecutable` **MUST** be empty arrays.
-S003-IF-006.b When Clover XML is used, `isPhpUnitXml` **MUST** be `false`.
-S003-IF-006.c When PHPUnit XML is used, `isPhpUnitXml` **MUST** be `true`.
+S003-IF-006.b When Clover XML or Cobertura XML are used, `hasAttributionCoverage` **MUST** be `false`.
+S003-IF-006.c When Parity per-test reports, Parity JSON, or PHPUnit XML are used, `hasAttributionCoverage` **MUST** be `true`.
 S003-IF-006.d `globalPercent` **MUST** be `null` when not available or when `min_coverage_global` is not configured (Clover only reads global coverage when `min_coverage_global` is set).

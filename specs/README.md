@@ -16,6 +16,7 @@ Parity uses spec IDs to keep implementation, tests, documentation, and release g
 | S008 | Output formats | `app/Commands/CheckCommand.php`, rule formatter methods | `tests/Feature/CheckCommandConfigTest.php`, sample JSON runs | `docs/CLI.md` |
 | S009 | Documentation system | `README.md`, `docs/`, `../parity-website/` | Website build and visual checks | `docs/` |
 | S010 | Testing, CI, and binary distribution | `.github/workflows/ci.yml`, `box.json`, `dev/` | Full test suite, Pint, PHAR smoke tests | `docs/RELEASE.md` |
+| S011 | Parity test execution and per-test reports | `app/Commands/TestCommand.php`, `app/Services/ParityPerTestCoverageReader.php`, `app/Services/ParityTestArtifactNormalizer.php` | `tests/Feature/TestCommandTest.php`, `tests/Unit/Services/ParityPerTestCoverageReaderTest.php` | `docs/CONFIGURATION.md`, `docs/COVERAGE-FORMATS.md` |
 
 See `TRACEABILITY.md` for the release-readiness matrix that maps specs to current implementation, tests, docs, and verification gates.
 

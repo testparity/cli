@@ -11,6 +11,7 @@ use App\Rules\RuleRegistry;
 use App\Services\CoverageReader;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
+use App\Services\ParityPerTestCoverageReader;
 use App\Services\ParityJsonCoverageReader;
 use App\Services\PhpUnitXmlCoverageReader;
 use App\Services\PluginLoader;
@@ -26,7 +27,7 @@ use Symfony\Component\Yaml\Yaml;
 class CheckCommand extends Command
 {
     protected $signature = 'check
-        {--show-tests : Show test names that cover each file in the table (PHPUnit XML only; default is count only)}
+        {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON or PHPUnit XML; default is count only)}
         {--format=table : Output format: table (default) or json}
         {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
@@ -78,7 +79,7 @@ class CheckCommand extends Command
         $lineCoverage = $coverageData['lineCoverage'];
         $totalExecutable = $coverageData['totalExecutable'];
         $globalPercent = $coverageData['globalPercent'];
-        $isPhpUnitXml = $coverageData['isPhpUnitXml'];
+        $hasAttributionCoverage = $coverageData['hasAttributionCoverage'];
 
         // ── Global coverage check ─────────────────────────────────
         $minCoverageGlobal = $settings->minCoverageGlobal;
@@ -118,7 +119,7 @@ class CheckCommand extends Command
 
             // Resolve rules for this structure
             try {
-                $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $isPhpUnitXml);
+                $resolvedRules = $this->resolveStructureRules($entry, $settings, $ruleRegistry, $hasAttributionCoverage);
             } catch (\InvalidArgumentException $e) {
                 $this->error($e->getMessage());
 
@@ -267,7 +268,7 @@ class CheckCommand extends Command
         $this->title('Summary');
         $this->outputCoverageSummaryTable($globalPercent, $minCoverageGlobal, $minCoverageDefault, $minMatchedCoverageDefault, $perFileMin, $perFileAvg);
 
-        if ($isPhpUnitXml && $testsByFile !== []) {
+        if ($hasAttributionCoverage && $testsByFile !== []) {
             $this->warnTestsNotMatchingAnyStructure($testsByFile, $expectedTestPaths, $namespaceHelper);
         }
 
@@ -295,7 +296,7 @@ class CheckCommand extends Command
      *   - New format: rules: [{ minimum-coverage: { min: 80 } }, 'enforce-coverage-link']
      *   - Legacy format: enforce_attribute / enforce_coverage_link + min_coverage
      */
-    private function resolveStructureRules(array $entry, Settings $settings, RuleRegistry $registry, bool $isPhpUnitXml = false): array
+    private function resolveStructureRules(array $entry, Settings $settings, RuleRegistry $registry, bool $hasAttributionCoverage = false): array
     {
         // New format: explicit rules array
         if (isset($entry['rules']) && is_array($entry['rules'])) {
@@ -310,8 +311,8 @@ class CheckCommand extends Command
                 array_unshift($ruleConfigs, 'test-exists');
             }
 
-            // Auto-append PHPUnit XML rules if available and not explicitly listed
-            if ($isPhpUnitXml) {
+            // Auto-append attribution rules if the selected coverage format exposes per-test data.
+            if ($hasAttributionCoverage) {
                 if (! in_array('matched-coverage', $ruleNames, true)) {
                     $ruleConfigs[] = 'matched-coverage';
                 }
@@ -351,8 +352,8 @@ class CheckCommand extends Command
             : $settings->minCoverage;
         $ruleConfigs[] = ['minimum-coverage' => ['min' => $minCoverage]];
 
-        // PHPUnit XML coverage extras (legacy auto-add)
-        if ($isPhpUnitXml) {
+        // Attribution-capable coverage extras (legacy auto-add)
+        if ($hasAttributionCoverage) {
             $matchedMin = isset($entry['min_matched_coverage'])
                 ? (float) $entry['min_matched_coverage']
                 : ($settings->minMatchedCoverage !== null ? $settings->minMatchedCoverage : null);
@@ -473,6 +474,11 @@ class CheckCommand extends Command
         $hasAttributionCoverage = false;
         foreach ($coverageCandidates as $candidate) {
             $path = $projectRoot.'/'.ltrim((string) $candidate, '/');
+            if (is_dir($path) && is_file($path.'/index.json')) {
+                $coveragePath = $path;
+                $hasAttributionCoverage = true;
+                break;
+            }
             if (is_file($path)) {
                 $coveragePath = $path;
                 $hasAttributionCoverage = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json';
@@ -498,7 +504,15 @@ class CheckCommand extends Command
         $totalExecutable = [];
         $globalPercent = null;
 
-        if ($coveragePath !== null && is_file($coveragePath) && strtolower(pathinfo($coveragePath, PATHINFO_EXTENSION)) === 'json') {
+        if ($coveragePath !== null && is_dir($coveragePath) && is_file($coveragePath.'/index.json')) {
+            $reader = new ParityPerTestCoverageReader;
+            $result = $reader->read($coveragePath, $projectRoot);
+            $coverageMap = $result['coverage'];
+            $testsByFile = $result['testsByFile'];
+            $lineCoverage = $result['lineCoverage'] ?? [];
+            $totalExecutable = $result['totalExecutable'] ?? [];
+            $globalPercent = $result['globalPercent'];
+        } elseif ($coveragePath !== null && is_file($coveragePath) && strtolower(pathinfo($coveragePath, PATHINFO_EXTENSION)) === 'json') {
             $jsonReader = new ParityJsonCoverageReader;
             $result = $jsonReader->read($coveragePath, $projectRoot);
             $coverageMap = $result['coverage'];
@@ -520,9 +534,7 @@ class CheckCommand extends Command
             $globalPercent = $minCoverageGlobal !== null ? $coverageReader->readGlobalCoverage($coveragePath) : null;
         }
 
-        $isPhpUnitXml = $hasAttributionCoverage;
-
-        return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'isPhpUnitXml');
+        return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage');
     }
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void

@@ -5,7 +5,7 @@
 S001-FR-001 [P1] The CLI **MUST** expose a `check` command with the Artisan/Symfony signature:
 ```
 check
-  {--show-tests : Show test names that cover each file in the table (PHPUnit XML only; default is count only)}
+  {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON, Parity per-test reports, or PHPUnit XML; default is count only)}
   {--format=table : Output format: table (default) or json}
   {--config= : Path to parity.yaml (default: ./parity.yaml)}
 ```
@@ -32,7 +32,7 @@ S001-FR-004.b When `--format=json`, the command **MUST** produce a single JSON d
 ### Show Tests Flag
 
 S001-FR-005 [P2] The `--show-tests` flag **MUST** be a boolean flag (no value) that, when present, causes the table output to display individual test method names covering each file instead of a count.
-S001-FR-005.a This flag **MUST** only have an observable effect when PHPUnit XML coverage data is in use.
+S001-FR-005.a This flag **MUST** only have an observable effect when attribution-capable coverage data is in use.
 S001-FR-005.b When `--format=json` is also specified, the `--show-tests` flag **SHOULD** have no effect on JSON output structure (test data is always included in JSON when available).
 
 ### Exit Codes
@@ -86,7 +86,7 @@ S001-FR-011.b Status cells **MUST** display `OK` (green) when the value meets th
 
 ### Unmatched Test Warning
 
-S001-FR-012 [P2] When PHPUnit XML coverage data is in use, the command **SHOULD** warn about tests found in coverage data that do not match any configured structure entry.
+S001-FR-012 [P2] When attribution-capable coverage data is in use, the command **SHOULD** warn about tests found in coverage data that do not match any configured structure entry.
 S001-FR-012.a The warning **MUST** be prefixed with: `Tests that did not match any structure (e.g. wrong path/namespace):`.
 S001-FR-012.b Each unmatched test path **MUST** be listed on its own line, indented, in yellow.
 S001-FR-012.c This warning **MUST** only appear in table mode, not in JSON mode.
@@ -117,8 +117,8 @@ S001-FR-016.b In JSON mode, plugin warnings **MUST NOT** appear in stdout output
 
 S001-FR-017 [P1] The `check` command **MUST** attempt to load coverage data from the candidate paths specified in `settings.coverage_paths` (derived from `coverage_xml` in config).
 S001-FR-017.a The command **MUST** try candidates in order and use the first path that resolves to an existing file or directory.
-S001-FR-017.b A directory candidate is valid if it contains an `index.xml` file (PHPUnit XML coverage format).
-S001-FR-017.c A file candidate is valid if it exists as a regular file (Clover XML format).
+S001-FR-017.b A directory candidate is valid if it contains an `index.json` file (Parity per-test report format) or an `index.xml` file (PHPUnit XML coverage format).
+S001-FR-017.c A file candidate is valid if it exists as a regular file (Parity JSON, Clover XML, or Cobertura XML).
 S001-FR-017.d If no candidate resolves, the command **MUST** print an error listing all tried paths and return exit code 1.
 
 ### Legacy Config Format Support

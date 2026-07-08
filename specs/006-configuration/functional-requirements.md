@@ -42,7 +42,7 @@ S006-FR-005.d `namespace_separator` **MUST** define the separator character used
 S006-FR-006 [P1] The `coverage_xml` config key **MUST** specify where to find coverage data files.
 S006-FR-006.a When `coverage_xml` is a string, the system **MUST** wrap it in a single-element array.
 S006-FR-006.b When `coverage_xml` is an array, the system **MUST** use the array as-is.
-S006-FR-006.c When `coverage_xml` is absent, the system **MUST** default to `['coverage-xml', 'clover.xml', 'cobertura.xml']`.
+S006-FR-006.c When `coverage_xml` is absent, the system **MUST** default to `['parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']`.
 S006-FR-006.d The resolved array **MUST** be stored in `Settings::$coveragePaths` and consumed by the coverage loading system (S003) which tries candidates in order.
 S006-FR-006.e Each candidate path **MUST** be relative to the project root.
 
@@ -95,7 +95,7 @@ S006-FR-012.b If `enforce_coverage_link` is `true` or `"true"`, the system **MUS
 S006-FR-012.c If `enforce_coverage_link` is not set but `enforce_attribute` is a string, the system **MUST** add `enforce-coverage-link` with `{"attribute": "<value>"}` as parameters.
 S006-FR-012.d If neither `enforce_coverage_link` nor `enforce_attribute` is set, the system **MUST** still add `enforce-coverage-link` with no parameters (default linker detection).
 S006-FR-012.e The system **MUST** add `minimum-coverage` with the per-structure `min_coverage` value (falling back to `Settings::$minCoverage`) as the `min` parameter.
-S006-FR-012.f When PHPUnit XML coverage is in use, the system **MUST** auto-append `matched-coverage` (with optional `min` parameter from `min_matched_coverage`) and `coverage-attribution`.
+S006-FR-012.f When attribution-capable coverage is in use, the system **MUST** auto-append `matched-coverage` (with optional `min` parameter from `min_matched_coverage`) and `coverage-attribution`.
 
 ### Default Values for All Optional Keys
 
@@ -109,7 +109,7 @@ S006-FR-013 [P1] The system **MUST** apply the following defaults when keys are 
 | `settings.test_suffix` | settings block | `"Test"` |
 | `settings.test_extension` | settings block | value of `source_extension` |
 | `settings.namespace_separator` | settings block | `"\\"` |
-| `coverage_xml` | top-level | `['coverage-xml', 'clover.xml', 'cobertura.xml']` |
+| `coverage_xml` | top-level | `['parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']` |
 | `min_coverage` | top-level | `80` |
 | `min_coverage_global` | top-level | `null` (not enforced) |
 | `min_matched_coverage` | top-level | `null` (not enforced) |
@@ -148,10 +148,10 @@ S006-FR-017 [P1] When resolving rules for a structure entry using the modern `ru
 S006-FR-017.a The check for `test-exists` presence **MUST** inspect both string entries and map entries (checking the key or `name` field).
 S006-FR-017.b If `test-exists` is already present in the rules array, it **MUST NOT** be added again.
 
-### PHPUnit XML Rule Auto-Append
+### Attribution Rule Auto-Append
 
-S006-FR-018 [P2] When PHPUnit XML coverage data is detected and the modern `rules` array is used, the system **SHOULD** auto-append `matched-coverage` and `coverage-attribution` rules if they are not already listed.
-S006-FR-018.a The auto-append **MUST** only occur when `isPhpUnitXml` is true (directory coverage source with `index.xml`).
+S006-FR-018 [P2] When attribution-capable coverage data is detected and the modern `rules` array is used, the system **SHOULD** auto-append `matched-coverage` and `coverage-attribution` rules if they are not already listed.
+S006-FR-018.a The auto-append **MUST** only occur when `hasAttributionCoverage` is true.
 S006-FR-018.b Each rule **MUST** only be appended if not already present in the rules array.
 
 ### Structure Block Iteration Order

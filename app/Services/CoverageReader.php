@@ -138,6 +138,99 @@ class CoverageReader
         return null;
     }
 
+    /**
+     * Parse executable and covered line numbers from Clover or Cobertura XML.
+     *
+     * @return array{
+     *     coveredLines: array<string, list<int>>,
+     *     totalExecutable: array<string, int>
+     * }
+     */
+    public function readExecutableLines(string $coverageXmlPath, ?string $projectRoot = null): array
+    {
+        if (! is_file($coverageXmlPath)) {
+            return ['coveredLines' => [], 'totalExecutable' => []];
+        }
+
+        $content = @file_get_contents($coverageXmlPath);
+        if ($content === false) {
+            return ['coveredLines' => [], 'totalExecutable' => []];
+        }
+
+        $doc = new DOMDocument;
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $doc->loadXML($content);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if (! $loaded) {
+            return ['coveredLines' => [], 'totalExecutable' => []];
+        }
+
+        $xpath = new DOMXPath($doc);
+        $coveredLines = [];
+        $totalExecutable = [];
+        $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
+
+        $files = $xpath->query('//file[@name]');
+        foreach ($files as $file) {
+            $name = $file->getAttribute('path') ?: $file->getAttribute('name');
+            if ($name === '') {
+                continue;
+            }
+
+            $executableLines = [];
+            $covered = [];
+            $lineNodes = $xpath->query('line', $file);
+            foreach ($lineNodes as $lineNode) {
+                $type = $lineNode->getAttribute('type');
+                if ($type !== '' && $type !== 'stmt') {
+                    continue;
+                }
+
+                $num = $lineNode->getAttribute('num');
+                if ($num === '') {
+                    continue;
+                }
+
+                $line = (int) $num;
+                $executableLines[$line] = true;
+                if ((int) $lineNode->getAttribute('count') > 0) {
+                    $covered[$line] = true;
+                }
+            }
+
+            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $name, array_keys($covered), count($executableLines), $root);
+        }
+
+        $classes = $xpath->query('//class[@filename]');
+        foreach ($classes as $class) {
+            $filename = $class->getAttribute('filename');
+            if ($filename === '') {
+                continue;
+            }
+
+            $executableLines = [];
+            $covered = [];
+            $lineNodes = $xpath->query('lines/line', $class);
+            foreach ($lineNodes as $lineNode) {
+                $num = $lineNode->getAttribute('number') ?: $lineNode->getAttribute('nr');
+                if ($num === '') {
+                    continue;
+                }
+
+                $line = (int) $num;
+                $executableLines[$line] = true;
+                if ((int) $lineNode->getAttribute('hits') > 0) {
+                    $covered[$line] = true;
+                }
+            }
+
+            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $filename, array_keys($covered), count($executableLines), $root);
+        }
+
+        return ['coveredLines' => $coveredLines, 'totalExecutable' => $totalExecutable];
+    }
+
     private function readCoberturaLinePercent(DOMXPath $xpath, \DOMNode $class): float
     {
         $lines = $xpath->query('lines/line', $class);
@@ -153,6 +246,33 @@ class CoverageReader
         }
 
         return round(100.0 * $covered / $lines->length, 2);
+    }
+
+    /**
+     * @param  array<string, list<int>>  $coveredLines
+     * @param  array<string, int>  $totalExecutable
+     * @param  list<int>  $covered
+     */
+    private function storeExecutableCoverage(array &$coveredLines, array &$totalExecutable, string $path, array $covered, int $executable, ?string $root): void
+    {
+        $normalized = $this->normalizePath($path);
+        $keys = [$normalized];
+
+        if ($root !== null) {
+            $relative = $this->pathRelativeTo($normalized, $root);
+            if ($relative === null && $this->isRelativePath($path)) {
+                $relative = str_replace('\\', '/', $path);
+            }
+            if ($relative !== null) {
+                $keys[] = $relative;
+            }
+        }
+
+        sort($covered);
+        foreach ($keys as $key) {
+            $coveredLines[$key] = $covered;
+            $totalExecutable[$key] = $executable;
+        }
     }
 
     /**
