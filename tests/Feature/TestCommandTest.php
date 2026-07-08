@@ -2,11 +2,10 @@
 
 // Specs: S001, S003, S006
 
-use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Artisan;
 
 it('generates one parity report per test and runs check against it by default', function () {
     $root = createParityTestProject('parity-test-command');
-    $cliPath = dirname(__DIR__, 2).'/parity';
 
     mkdir($root.'/src', 0777, true);
     mkdir($root.'/tests', 0777, true);
@@ -81,34 +80,22 @@ structure:
           min: 50
 YAML);
 
-    $process = new Process([
-        PHP_BINARY,
-        $cliPath,
-        'test',
-        '--config='.$root.'/parity.yaml',
-        '--format=json',
-    ], $root);
-    $process->setEnv([
-        ...$_ENV,
-        'XDEBUG_MODE' => 'off',
+    $exitCode = Artisan::call('test', [
+        '--config' => $root.'/parity.yaml',
+        '--format' => 'json',
     ]);
-    $process->run();
 
-    $this->assertSame(
-        0,
-        $process->getExitCode(),
-        "parity test failed.\nSTDOUT:\n{$process->getOutput()}\nSTDERR:\n{$process->getErrorOutput()}"
-    );
+    expect($exitCode)->toBe(0);
 
     expect(is_file($root.'/.parity/per-test/index.json'))->toBeTrue();
     $manifest = json_decode((string) file_get_contents($root.'/.parity/per-test/index.json'), true);
     expect($manifest['reports'])->toHaveCount(2);
 
-    $output = json_decode($process->getOutput(), true);
+    $output = json_decode(Artisan::output(), true);
     expect($output['passed'])->toBeTrue();
     expect($output['structures'][0]['files'][0]['rules'])->toHaveKey('matched-coverage');
     expect($output['structures'][0]['files'][0]['rules'])->toHaveKey('coverage-attribution');
-})->skip(fn () => ! is_file(__DIR__.'/../../parity'));
+});
 
 function createParityTestProject(string $name): string
 {

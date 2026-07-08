@@ -58,7 +58,12 @@ class ParityTestArtifactNormalizer
     private function buildReport(array $lineCoverage, array $totalExecutable, string $testName, string $projectRoot): array
     {
         $files = [];
-        $root = rtrim(str_replace('\\', '/', $projectRoot), '/');
+        $root = str_replace('\\', '/', $projectRoot);
+        $realRoot = realpath($projectRoot);
+        if ($realRoot !== false) {
+            $root = str_replace('\\', '/', $realRoot);
+        }
+        $root = rtrim($root, '/');
         $keys = array_unique(array_merge(array_keys($lineCoverage), array_keys($totalExecutable)));
         sort($keys);
 
