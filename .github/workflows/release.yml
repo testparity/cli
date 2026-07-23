@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-assets:
+    name: Build release assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json
+          coverage: xdebug
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+            vendor
+          key: composer-php-8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-php-8.4-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Validate release candidate
+        run: |
+          composer validate --strict
+          ./vendor/bin/pint --test
+          XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
+          php parity check --format=json
+
+      - name: Build PHAR
+        run: |
+          mkdir -p vendor/humbug/php-scoper/vendor-hotfix
+          echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
+          printf '%s\n' "${GITHUB_REF_NAME#v}" > VERSION
+          ./vendor/bin/box compile --no-interaction
+        env:
+          BOX_CACHE_ENABLED: false
+
+      - name: Verify PHAR
+        run: |
+          chmod +x parity.phar
+          ./parity.phar --version
+          ./parity.phar check --format=json
+
+      - name: Generate checksum
+        run: shasum -a 256 parity.phar > parity.phar.sha256
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            parity.phar
+            parity.phar.sha256
+
+  draft-release:
+    name: Draft GitHub release
+    runs-on: ubuntu-latest
+    needs: build-assets
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          files: |
+            parity.phar
+            parity.phar.sha256
+
+  packagist-smoke:
+    name: Packagist smoke
+    needs: build-assets
+    uses: ./.github/workflows/release-smoke.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  publish-release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs:
+      - draft-release
+      - packagist-smoke
+    permissions:
+      contents: write
+
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${GITHUB_REF_NAME}" --draft=false --latest
