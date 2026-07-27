@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - '**'
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   ci:
@@ -47,7 +49,15 @@ jobs:
         run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
 
       - name: Run Parity on Parity
-        run: php parity check --format=json
+        run: php parity check --format=json | tee parity-results.json
+
+      - name: Upload Parity results
+        if: ${{ always() && hashFiles('parity-results.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-results
+          path: parity-results.json
+          retention-days: 30
 
       - name: Build PHAR
         run: |

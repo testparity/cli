@@ -78,4 +78,6 @@ Supported placeholders:
 
 `parity test` uses `test.reports` unless `--output` overrides it. `test.timeout` is the positive per-runner timeout in seconds and defaults to `300`; `--timeout` overrides it. The command runs `parity check` automatically unless `--no-check` is supplied.
 
+`test.command` is executed through the system shell. Parity shell-escapes placeholder values, but the command template itself is trusted executable configuration. Review `parity.yaml` before running `parity test`, especially in privileged CI or on pull requests from forks.
+
 Use a descendant of `.parity/` for temporary coverage, separate from `test.reports`. Parity removes each runner artifact after use, stages report output, and refuses roots, nested symlinks, overlapping paths, files, or unowned non-empty directories, so a configuration typo cannot recursively remove unrelated data.

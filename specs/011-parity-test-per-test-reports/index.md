@@ -5,7 +5,7 @@
 | Spec | S011 |
 | Feature | Parity Test Execution & Per-Test Coverage Reports |
 | Date | 2026-07-08 |
-| Status | Draft |
+| Status | Implemented |
 | Author | Codex |
 
 ## Overview
@@ -37,64 +37,64 @@ S011-US-006 [P1] As a developer, I want failed or timed-out generation to preser
 
 | ID | Type | Priority | Title | Status |
 |----|------|----------|-------|--------|
-| S011-FR-001 | Functional | P1 | `parity test` command availability | Draft |
-| S011-FR-002 | Functional | P1 | Required `test` configuration | Draft |
-| S011-FR-003 | Functional | P1 | Expected-test discovery | Draft |
-| S011-FR-004 | Functional | P1 | Per-test command execution | Draft |
-| S011-FR-005 | Functional | P1 | Coverage artifact normalization | Draft |
-| S011-FR-006 | Functional | P1 | Per-test report directory creation | Draft |
-| S011-FR-007 | Functional | P1 | Manifest generation | Draft |
-| S011-FR-008 | Functional | P1 | Automatic `parity check` handoff | Draft |
-| S011-FR-009 | Functional | P2 | `--no-check` behavior | Draft |
-| S011-FR-010 | Functional | P2 | Output directory override | Draft |
-| S011-FR-011 | Functional | P2 | Placeholder expansion | Draft |
-| S011-FR-012 | Functional | P1 | Missing required config errors | Draft |
-| S011-FR-013 | Functional | P1 | Failed test process handling | Draft |
-| S011-FR-014 | Functional | P2 | No discovered tests behavior | Draft |
-| S011-FR-015 | Functional | P1 | `parity check` compatibility of generated reports | Draft |
-| S011-FR-016 | Functional | P1 | Native report schema and path validation | Draft |
-| S011-FR-017 | Functional | P1 | Coverage artifact path safety | Draft |
-| S011-IF-001 | Interface | P1 | `parity test` CLI signature | Draft |
-| S011-IF-002 | Interface | P1 | `test` config block schema | Draft |
-| S011-IF-003 | Interface | P1 | Placeholder contract | Draft |
-| S011-IF-004 | Interface | P1 | Per-test report manifest schema | Draft |
-| S011-IF-005 | Interface | P1 | Per-test report file schema | Draft |
-| S011-IF-006 | Interface | P1 | Normalizer input formats | Draft |
-| S011-AS-001 | Acceptance | P1 | Generate one report per expected test | Draft |
-| S011-AS-002 | Acceptance | P1 | Run `parity check` by default after generation | Draft |
-| S011-AS-003 | Acceptance | P1 | `--no-check` skips follow-up analysis | Draft |
-| S011-AS-004 | Acceptance | P1 | Missing `test.command` fails fast | Draft |
-| S011-AS-005 | Acceptance | P1 | Missing `test.coverage` fails fast | Draft |
-| S011-AS-006 | Acceptance | P2 | Output override changes report directory | Draft |
-| S011-AS-007 | Acceptance | P2 | Non-attribution runner artifact is normalized | Draft |
-| S011-AS-008 | Acceptance | P2 | Explicitly mapped tests participate in discovery | Draft |
-| S011-AS-009 | Acceptance | P1 | Missing coverage preserves prior reports | Draft |
-| S011-AS-010 | Acceptance | P1 | Dangerous output target is rejected | Draft |
-| S011-AS-011 | Acceptance | P1 | Runner timeout fails cleanly | Draft |
-| S011-AS-012 | Acceptance | P1 | Nested symlink and overlapping artifact targets are rejected | Draft |
-| S011-EC-001 | Edge Case | P1 | Config file path cannot be resolved | Draft |
-| S011-EC-002 | Edge Case | P1 | Discovered test command exits non-zero | Draft |
-| S011-EC-003 | Edge Case | P1 | Coverage artifact path does not exist after successful test run | Draft |
-| S011-EC-004 | Edge Case | P2 | Source structure path does not exist | Draft |
-| S011-EC-005 | Edge Case | P2 | Expected test file does not exist | Draft |
-| S011-EC-006 | Edge Case | P2 | Report directory already exists | Draft |
-| S011-EC-007 | Edge Case | P2 | Coverage target is a directory rather than a file | Draft |
-| S011-EC-008 | Edge Case | P2 | No expected tests are discovered | Draft |
-| S011-EC-009 | Edge Case | P1 | Runner process times out | Draft |
-| S011-EC-010 | Edge Case | P1 | Report output target is destructive or unowned | Draft |
-| S011-EC-011 | Edge Case | P1 | Fixed temporary config path already exists | Draft |
-| S011-EC-012 | Edge Case | P1 | Manifest report path escapes the report root | Draft |
-| S011-EC-013 | Edge Case | P1 | Coverage artifact is unowned | Draft |
-| S011-EC-014 | Edge Case | P1 | Artifact path has a symlink ancestor | Draft |
-| S011-EC-015 | Edge Case | P1 | Coverage target overlaps report output | Draft |
-| S011-SC-001 | Success | P1 | Generated report set is consumable by `parity check` | Draft |
-| S011-SC-002 | Success | P1 | Same input project produces deterministic manifest contents | Draft |
-| S011-SC-003 | Success | P1 | One failing individual test causes command failure | Draft |
-| S011-SC-004 | Success | P1 | Generated reports preserve file-local attribution needed for matched coverage | Draft |
-| S011-SC-005 | Success | P1 | Failed generation preserves the last complete report set | Draft |
-| S011-SC-006 | Success | P1 | Unsafe paths cannot delete unrelated data | Draft |
-| S011-SC-007 | Success | P1 | Report parsing remains contained beneath `reports/` | Draft |
-| S011-SC-008 | Success | P1 | Runner artifacts are removed after every attempt | Draft |
+| S011-FR-001 | Functional | P1 | `parity test` command availability | Implemented |
+| S011-FR-002 | Functional | P1 | Required `test` configuration | Implemented |
+| S011-FR-003 | Functional | P1 | Expected-test discovery | Implemented |
+| S011-FR-004 | Functional | P1 | Per-test command execution | Implemented |
+| S011-FR-005 | Functional | P1 | Coverage artifact normalization | Implemented |
+| S011-FR-006 | Functional | P1 | Per-test report directory creation | Implemented |
+| S011-FR-007 | Functional | P1 | Manifest generation | Implemented |
+| S011-FR-008 | Functional | P1 | Automatic `parity check` handoff | Implemented |
+| S011-FR-009 | Functional | P2 | `--no-check` behavior | Implemented |
+| S011-FR-010 | Functional | P2 | Output directory override | Implemented |
+| S011-FR-011 | Functional | P2 | Placeholder expansion | Implemented |
+| S011-FR-012 | Functional | P1 | Missing required config errors | Implemented |
+| S011-FR-013 | Functional | P1 | Failed test process handling | Implemented |
+| S011-FR-014 | Functional | P2 | No discovered tests behavior | Implemented |
+| S011-FR-015 | Functional | P1 | `parity check` compatibility of generated reports | Implemented |
+| S011-FR-016 | Functional | P1 | Native report schema and path validation | Implemented |
+| S011-FR-017 | Functional | P1 | Coverage artifact path safety | Implemented |
+| S011-IF-001 | Interface | P1 | `parity test` CLI signature | Implemented |
+| S011-IF-002 | Interface | P1 | `test` config block schema | Implemented |
+| S011-IF-003 | Interface | P1 | Placeholder contract | Implemented |
+| S011-IF-004 | Interface | P1 | Per-test report manifest schema | Implemented |
+| S011-IF-005 | Interface | P1 | Per-test report file schema | Implemented |
+| S011-IF-006 | Interface | P1 | Normalizer input formats | Implemented |
+| S011-AS-001 | Acceptance | P1 | Generate one report per expected test | Implemented |
+| S011-AS-002 | Acceptance | P1 | Run `parity check` by default after generation | Implemented |
+| S011-AS-003 | Acceptance | P1 | `--no-check` skips follow-up analysis | Implemented |
+| S011-AS-004 | Acceptance | P1 | Missing `test.command` fails fast | Implemented |
+| S011-AS-005 | Acceptance | P1 | Missing `test.coverage` fails fast | Implemented |
+| S011-AS-006 | Acceptance | P2 | Output override changes report directory | Implemented |
+| S011-AS-007 | Acceptance | P2 | Non-attribution runner artifact is normalized | Implemented |
+| S011-AS-008 | Acceptance | P2 | Explicitly mapped tests participate in discovery | Implemented |
+| S011-AS-009 | Acceptance | P1 | Missing coverage preserves prior reports | Implemented |
+| S011-AS-010 | Acceptance | P1 | Dangerous output target is rejected | Implemented |
+| S011-AS-011 | Acceptance | P1 | Runner timeout fails cleanly | Implemented |
+| S011-AS-012 | Acceptance | P1 | Nested symlink and overlapping artifact targets are rejected | Implemented |
+| S011-EC-001 | Edge Case | P1 | Config file path cannot be resolved | Implemented |
+| S011-EC-002 | Edge Case | P1 | Discovered test command exits non-zero | Implemented |
+| S011-EC-003 | Edge Case | P1 | Coverage artifact path does not exist after successful test run | Implemented |
+| S011-EC-004 | Edge Case | P2 | Source structure path does not exist | Implemented |
+| S011-EC-005 | Edge Case | P2 | Expected test file does not exist | Implemented |
+| S011-EC-006 | Edge Case | P2 | Report directory already exists | Implemented |
+| S011-EC-007 | Edge Case | P2 | Coverage target is a directory rather than a file | Implemented |
+| S011-EC-008 | Edge Case | P2 | No expected tests are discovered | Implemented |
+| S011-EC-009 | Edge Case | P1 | Runner process times out | Implemented |
+| S011-EC-010 | Edge Case | P1 | Report output target is destructive or unowned | Implemented |
+| S011-EC-011 | Edge Case | P1 | Fixed temporary config path already exists | Implemented |
+| S011-EC-012 | Edge Case | P1 | Manifest report path escapes the report root | Implemented |
+| S011-EC-013 | Edge Case | P1 | Coverage artifact is unowned | Implemented |
+| S011-EC-014 | Edge Case | P1 | Artifact path has a symlink ancestor | Implemented |
+| S011-EC-015 | Edge Case | P1 | Coverage target overlaps report output | Implemented |
+| S011-SC-001 | Success | P1 | Generated report set is consumable by `parity check` | Implemented |
+| S011-SC-002 | Success | P1 | Same input project produces deterministic manifest contents | Implemented |
+| S011-SC-003 | Success | P1 | One failing individual test causes command failure | Implemented |
+| S011-SC-004 | Success | P1 | Generated reports preserve file-local attribution needed for matched coverage | Implemented |
+| S011-SC-005 | Success | P1 | Failed generation preserves the last complete report set | Implemented |
+| S011-SC-006 | Success | P1 | Unsafe paths cannot delete unrelated data | Implemented |
+| S011-SC-007 | Success | P1 | Report parsing remains contained beneath `reports/` | Implemented |
+| S011-SC-008 | Success | P1 | Runner artifacts are removed after every attempt | Implemented |
 
 ## Cross-Spec Dependencies
 

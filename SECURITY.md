@@ -24,4 +24,8 @@ Use GitHub's private vulnerability reporting for `testparity/cli` when available
 
 Relevant issues include arbitrary file reads, command execution, unsafe plugin loading behavior, path traversal, dependency confusion, or leaks of sensitive paths or environment values through output.
 
-Parity reads project files and coverage artifacts but does not run a project's test suite. Treat coverage reports, `parity.yaml`, and custom plugins as project-controlled input.
+`parity check` reads project files and coverage artifacts without running tests. `parity test` intentionally executes the configured `test.command` through the system shell once per discovered belonging test. Placeholder values are shell-escaped, but the command template itself is trusted executable configuration.
+
+Only run `parity test` with a reviewed `parity.yaml`, especially in CI or on pull requests from forks. Treat project-local and global plugins as trusted PHP code, and never load unreviewed plugins in a privileged environment.
+
+Coverage reports are parsed as untrusted data. Avoid publishing reports that contain sensitive source paths, test names, or environment-specific information.

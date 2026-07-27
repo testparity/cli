@@ -319,7 +319,7 @@ Each structure contains `name`, `source_path`, `test_path`, and `files`. Each fi
 
 `app/Providers/GitVersionFallbackProvider.php` binds `git.version` to the same `VERSION` fallback behavior for packaged/runtime contexts.
 
-`dev/release-version.sh` handles dry-run and real version bumps, changelog updates, local annotated tags, optional pushes, and dirty-worktree or duplicate-tag protection.
+`dev/release-version.sh` requires curated `## [Unreleased]` notes, handles dry-run and real version bumps, promotes those notes into the dated release section, verifies version metadata, creates an annotated tag, and can atomically push the release commit and tag. It also rejects dirty worktrees, duplicate tags, and releases outside `main`.
 
 ## Samples
 

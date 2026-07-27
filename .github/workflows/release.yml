@@ -21,6 +21,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify release metadata
+        run: bash dev/verify-release-metadata.sh "${GITHUB_REF_NAME}"
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -53,7 +56,6 @@ jobs:
         run: |
           mkdir -p vendor/humbug/php-scoper/vendor-hotfix
           echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
-          printf '%s\n' "${GITHUB_REF_NAME}" > VERSION
           ./vendor/bin/box compile --no-interaction
         env:
           BOX_CACHE_ENABLED: false

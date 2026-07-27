@@ -6,6 +6,8 @@
 #   ./dev/release-version.sh patch --push      # bump + commit + tag + push
 #   ./dev/release-version.sh minor --push
 #   ./dev/release-version.sh major --push
+#
+# Add at least one release-note bullet beneath ## [Unreleased] before running.
 
 set -euo pipefail
 
@@ -33,7 +35,7 @@ MAJOR=${BASH_REMATCH[1]}
 MINOR=${BASH_REMATCH[2]}
 PATCH=${BASH_REMATCH[3]}
 
-BUMP_TYPE="${1:-patch}"
+BUMP_TYPE="patch"
 DRY_RUN=false
 PUSH=false
 
@@ -73,9 +75,27 @@ echo "Current version: $VERSION"
 echo "Bump type: $BUMP_TYPE"
 echo "New version: $NEW_VERSION"
 
+UNRELEASED_BODY=$(awk '
+    /^## \[Unreleased\]$/ {
+        capture = 1
+        next
+    }
+    capture && /^## \[/ {
+        exit
+    }
+    capture {
+        print
+    }
+' "$CHANGELOG_FILE")
+
+if [[ -z "$UNRELEASED_BODY" ]] || ! grep -Eq '^- .+' <<< "$UNRELEASED_BODY"; then
+    echo "ERROR: Add release notes beneath ## [Unreleased] in CHANGELOG.md before releasing." >&2
+    exit 1
+fi
+
 if $DRY_RUN; then
     echo "[DRY RUN] Would update VERSION: $VERSION -> $NEW_VERSION"
-    echo "[DRY RUN] Would update CHANGELOG.md date to $TODAY"
+    echo "[DRY RUN] Would promote the Unreleased notes to $NEW_VERSION_NUMBER on $TODAY"
     echo "[DRY RUN] Would create a git commit and annotated tag"
     echo "[DRY RUN] A real run with --push would publish both"
     exit 0
@@ -87,7 +107,7 @@ if [[ "$CURRENT_BRANCH" != "main" ]]; then
     exit 1
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+if [[ -n "$(git status --porcelain)" ]]; then
     echo "ERROR: Working tree is dirty. Commit or stash changes before releasing." >&2
     exit 1
 fi
@@ -101,40 +121,39 @@ fi
 echo "$NEW_VERSION" > "$VERSION_FILE"
 echo "Updated VERSION: $NEW_VERSION"
 
-# 2. Prepend new changelog entry
+# 2. Promote the curated Unreleased notes into the new version.
 CHANGELOG_TMP=$(mktemp)
-cat > "$CHANGELOG_TMP" << EOF
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [$NEW_VERSION_NUMBER] - $TODAY
-
-### Added
-- (new release)
-
-EOF
-tail -n +8 "$CHANGELOG_FILE" >> "$CHANGELOG_TMP"
+awk -v version="$NEW_VERSION_NUMBER" -v date="$TODAY" '
+    /^## \[Unreleased\]$/ && ! promoted {
+        print "## [Unreleased]"
+        print ""
+        print "## [" version "] - " date
+        promoted = 1
+        next
+    }
+    {
+        print
+    }
+' "$CHANGELOG_FILE" > "$CHANGELOG_TMP"
 mv "$CHANGELOG_TMP" "$CHANGELOG_FILE"
 echo "Updated CHANGELOG.md"
 
-# 3. Git commit
+# 3. Verify the exact metadata that CI and Packagist will publish.
+bash "$PROJECT_DIR/dev/verify-release-metadata.sh" "$NEW_VERSION"
+
+# 4. Git commit
 git add VERSION CHANGELOG.md
 git commit -m "release: $NEW_VERSION"
 
-# 4. Git tag
+# 5. Git tag
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 
-# 5. Push
+# 6. Push
 if $PUSH; then
     echo "Pushing to remote..."
-    git push origin main
-    git push origin "$NEW_VERSION"
+    git push --atomic origin main "$NEW_VERSION"
     echo "Released $NEW_VERSION"
 else
     echo "[--push not specified] Skipping remote push"
-    echo "To publish this prepared release, run: git push origin main $NEW_VERSION"
+    echo "To publish this prepared release, run: git push --atomic origin main $NEW_VERSION"
 fi

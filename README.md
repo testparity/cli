@@ -44,6 +44,8 @@ parity test --no-check              # Generate reports without the follow-up che
 
 `parity check` only reads existing coverage reports. When a runner cannot emit per-test attribution, `parity test` runs each expected test file individually, normalizes its coverage artifact, writes one report per test, and runs `parity check` against those reports by default.
 
+`parity test` executes the configured `test.command` through the system shell. Placeholder values are escaped, but the command template is trusted executable configuration; review `parity.yaml` before running it locally or in privileged CI.
+
 ```yaml
 coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 ```

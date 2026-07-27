@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -31,18 +34,27 @@ jobs:
 
       - name: Resolve target version
         id: target
+        env:
+          CALLED_VERSION: ${{ inputs.version }}
+          DISPATCHED_VERSION: ${{ github.event.inputs.version }}
         run: |
-          TARGET_VERSION='${{ inputs.version }}'
+          TARGET_VERSION="$CALLED_VERSION"
           if [ -z "$TARGET_VERSION" ]; then
-            TARGET_VERSION='${{ github.event.inputs.version }}'
+            TARGET_VERSION="$DISPATCHED_VERSION"
+          fi
+
+          if [ -n "$TARGET_VERSION" ] && [[ ! "$TARGET_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Target version must use vMAJOR.MINOR.PATCH format" >&2
+            exit 1
           fi
 
           echo "value=$TARGET_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Wait for Packagist package
         if: ${{ steps.target.outputs.value != '' }}
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.value }}
         run: |
-          TARGET_VERSION='${{ steps.target.outputs.value }}'
           NORMALIZED_VERSION="${TARGET_VERSION#v}"
 
           for attempt in $(seq 1 30); do
@@ -75,8 +87,9 @@ jobs:
           exit 1
 
       - name: Install Parity from Packagist
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.value }}
         run: |
-          TARGET_VERSION='${{ steps.target.outputs.value }}'
           if [ -n "$TARGET_VERSION" ]; then
             composer global require "testparity/parity:${TARGET_VERSION}" --prefer-dist --no-progress --no-interaction
           else
@@ -85,82 +98,34 @@ jobs:
           composer global config bin-dir --absolute >> "$GITHUB_PATH"
 
       - name: Build temporary sample project
-        run: |
-          mkdir -p /tmp/parity-smoke/src /tmp/parity-smoke/tests
-          cd /tmp/parity-smoke
-
-          cat > src/InvoiceTotal.php <<'PHP'
-          <?php
-
-          final class InvoiceTotal
-          {
-              public function cents(array $lines): int
-              {
-                  return array_sum($lines);
-              }
-          }
-          PHP
-
-          cat > tests/InvoiceTotalTest.php <<'PHP'
-          <?php
-
-          final class InvoiceTotalTest
-          {
-              public function coversPrimaryBehavior(): void
-              {
-              }
-          }
-          PHP
-
-          cat > parity-coverage.json <<'JSON'
-          {
-            "version": 1,
-            "globalPercent": 100,
-            "files": [
-              {
-                "path": "src/InvoiceTotal.php",
-                "coveragePercent": 100,
-                "totalExecutableLines": 3,
-                "lines": [
-                  { "line": 5, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] },
-                  { "line": 6, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] },
-                  { "line": 7, "coveredBy": ["InvoiceTotalTest::coversPrimaryBehavior"] }
-                ]
-              }
-            ]
-          }
-          JSON
-
-          cat > parity.yaml <<'YAML'
-          settings:
-            namespace_roots:
-              src: App
-              tests: Tests
-            source_extension: ".php"
-            test_suffix: "Test"
-            test_extension: ".php"
-            namespace_separator: "\\"
-
-          coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
-          min_coverage: 90
-          min_coverage_global: 90
-          min_matched_coverage: 90
-
-          structure:
-            - name: "Smoke"
-              paths:
-                source: "src"
-                test: "tests"
-              rules:
-                - minimum-coverage:
-                    min: 90
-                - matched-coverage:
-                    min: 90
-                - coverage-attribution
-          YAML
+        run: bash "$GITHUB_WORKSPACE/dev/build-release-smoke-project.sh" /tmp/parity-smoke
 
       - name: Run installed Parity
         working-directory: /tmp/parity-smoke
+        env:
+          TARGET_VERSION: ${{ steps.target.outputs.value }}
         run: |
-          parity --version
+          INSTALLED_VERSION="$(parity --version)"
+          INSTALLED_TAG="${INSTALLED_VERSION#Parity }"
+          if [[ ! "$INSTALLED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Installed Parity returned an invalid version: $INSTALLED_VERSION" >&2
+            exit 1
+          fi
+          if [ -n "$TARGET_VERSION" ] && [ "$INSTALLED_VERSION" != "Parity $TARGET_VERSION" ]; then
+            echo "Installed version mismatch: expected Parity $TARGET_VERSION, got $INSTALLED_VERSION" >&2
+            exit 1
+          fi
+          echo "$INSTALLED_VERSION"
           parity check --format=json
+
+          # Recurring latest-stable checks bridge the pre-v1.2.0 package; exact
+          # tagged release checks never skip the parity test gate.
+          if [ -z "$TARGET_VERSION" ] && ! php -r '
+            exit(version_compare(ltrim($argv[1], "v"), "1.2.0", ">=") ? 0 : 1);
+          ' "$INSTALLED_TAG"; then
+            echo "Latest stable predates parity test; check-only smoke completed."
+            exit 0
+          fi
+
+          parity test --format=json
+          test -f .parity/per-test/index.json

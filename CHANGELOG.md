@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `parity test` execution mode for running each belonging test independently and generating attribution-capable coverage.
+- A versioned Parity per-test report directory with strict manifest, report, and path validation.
+- Multiple ordered coverage inputs, allowing attribution-rich reports to take precedence over aggregate fallbacks.
+- Automated tagged releases with verified PHAR assets, SHA-256 checksums, and a public Packagist installation smoke test.
+
+### Changed
+- Per-test report publication is staged and atomic so failed or timed-out runs preserve the last complete report set.
+- Release automation now requires curated changelog notes and identical version metadata across source, PHAR, and Packagist installs.
+
+### Security
+- Coverage artifacts and report paths are constrained to owned workspace locations before cleanup or publication.
+- Test-command placeholders are shell-escaped, and the executable configuration trust boundary is documented explicitly.
+
+## [1.1.1] - 2026-07-06
+
+### Added
+- Public badges and documentation for converting language-neutral coverage JSON.
+
+### Changed
+- Package version metadata was synchronized to `v1.1.1`.
+
+## [1.1.0] - 2026-07-06
+
+### Added
+- Language-neutral coverage attribution through Parity JSON.
+- Portable sample configurations spanning PHP, JavaScript, TypeScript, Rust, and common test runners.
+- PHAR version reporting through the tracked `VERSION` file.
+
+### Fixed
+- PHAR dependency packaging and runtime version fallback.
+- CI dependency setup, portable sample coverage fixtures, and coverage-reader formatting.
+
 ## [1.0.0] - 2026-04-26
 
 ### Added
