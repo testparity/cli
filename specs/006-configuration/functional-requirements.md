@@ -42,7 +42,7 @@ S006-FR-005.d `namespace_separator` **MUST** define the separator character used
 S006-FR-006 [P1] The `coverage_xml` config key **MUST** specify where to find coverage data files.
 S006-FR-006.a When `coverage_xml` is a string, the system **MUST** wrap it in a single-element array.
 S006-FR-006.b When `coverage_xml` is an array, the system **MUST** use the array as-is.
-S006-FR-006.c When `coverage_xml` is absent, the system **MUST** default to `['parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']`.
+S006-FR-006.c When `coverage_xml` is absent, the system **MUST** default to `['.parity/per-test', 'parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']`.
 S006-FR-006.d The resolved array **MUST** be stored in `Settings::$coveragePaths` and consumed by the coverage loading system (S003) which tries candidates in order.
 S006-FR-006.e Each candidate path **MUST** be relative to the project root.
 
@@ -109,7 +109,7 @@ S006-FR-013 [P1] The system **MUST** apply the following defaults when keys are 
 | `settings.test_suffix` | settings block | `"Test"` |
 | `settings.test_extension` | settings block | value of `source_extension` |
 | `settings.namespace_separator` | settings block | `"\\"` |
-| `coverage_xml` | top-level | `['parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']` |
+| `coverage_xml` | top-level | `['.parity/per-test', 'parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']` |
 | `min_coverage` | top-level | `80` |
 | `min_coverage_global` | top-level | `null` (not enforced) |
 | `min_matched_coverage` | top-level | `null` (not enforced) |

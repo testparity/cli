@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * Specs: S003
+ * Specs: S003, S011
  *
  * Reads Parity's directory-based per-test coverage format.
  */
@@ -34,7 +34,10 @@ class ParityPerTestCoverageReader
         }
 
         $index = json_decode($indexContent, true);
-        if (! is_array($index)) {
+        if (! is_array($index)
+            || ($index['version'] ?? null) !== 1
+            || ($index['kind'] ?? null) !== 'parity-per-test-coverage'
+            || ! is_array($index['reports'] ?? null)) {
             return $empty;
         }
 
@@ -43,8 +46,19 @@ class ParityPerTestCoverageReader
         $lineCoverage = [];
         $totalExecutable = [];
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
+        $baseRoot = realpath($dirPath);
+        $reportsConfiguredPath = rtrim($dirPath, '/\\').'/reports';
+        $reportsRoot = realpath($reportsConfiguredPath);
+        if ($baseRoot === false || $reportsRoot === false || is_link($reportsConfiguredPath)) {
+            return $empty;
+        }
+        $baseRoot = $this->normalizePath($baseRoot);
+        $reportsRoot = $this->normalizePath($reportsRoot);
+        if (! $this->isPathWithin($reportsRoot, $baseRoot)) {
+            return $empty;
+        }
 
-        foreach (($index['reports'] ?? []) as $entry) {
+        foreach ($index['reports'] as $entry) {
             if (! is_array($entry)) {
                 continue;
             }
@@ -55,8 +69,17 @@ class ParityPerTestCoverageReader
                 continue;
             }
 
-            $reportPath = rtrim($dirPath, '/\\').'/'.ltrim($reportRel, '/');
-            if (! is_file($reportPath)) {
+            $reportRelativePath = $this->normalizeRelativePath($reportRel);
+            if ($reportRelativePath === null || ! str_starts_with($reportRelativePath, 'reports/')) {
+                continue;
+            }
+
+            $reportPath = realpath(rtrim($dirPath, '/\\').'/'.$reportRelativePath);
+            if ($reportPath === false || ! is_file($reportPath)) {
+                continue;
+            }
+            $reportPath = $this->normalizePath($reportPath);
+            if (! $this->isPathWithin($reportPath, $reportsRoot)) {
                 continue;
             }
 
@@ -66,21 +89,34 @@ class ParityPerTestCoverageReader
             }
 
             $report = json_decode($reportContent, true);
-            if (! is_array($report)) {
+            if (! is_array($report)
+                || ($report['version'] ?? null) !== 1
+                || ($report['test'] ?? null) !== $testName
+                || ! is_array($report['files'] ?? null)) {
                 continue;
             }
 
-            foreach (($report['files'] ?? []) as $file) {
+            foreach ($report['files'] as $file) {
                 if (! is_array($file) || ! isset($file['path']) || ! is_string($file['path'])) {
                     continue;
                 }
 
-                $relativePath = ltrim(str_replace('\\', '/', $file['path']), '/');
-                $coveredLines = array_values(array_unique(array_map('intval', is_array($file['coveredLines'] ?? null) ? $file['coveredLines'] : [])));
+                $relativePath = $this->normalizeRelativePath($file['path']);
+                if ($relativePath === null) {
+                    continue;
+                }
+
+                $coveredLines = array_values(array_unique(array_filter(
+                    array_map('intval', is_array($file['coveredLines'] ?? null) ? $file['coveredLines'] : []),
+                    fn (int $line): bool => $line > 0
+                )));
                 sort($coveredLines);
                 $executable = isset($file['totalExecutableLines']) && is_numeric($file['totalExecutableLines'])
-                    ? (int) $file['totalExecutableLines']
+                    ? max(0, (int) $file['totalExecutableLines'])
                     : 0;
+                if ($executable === 0 || count($coveredLines) > $executable) {
+                    continue;
+                }
 
                 $keys = [$relativePath];
                 if ($root !== null) {
@@ -90,7 +126,7 @@ class ParityPerTestCoverageReader
                 foreach ($keys as $key) {
                     $totalExecutable[$key] = max($totalExecutable[$key] ?? 0, $executable);
                     $testsByFile[$key] ??= [];
-                    if (! in_array($testName, $testsByFile[$key], true)) {
+                    if ($coveredLines !== [] && ! in_array($testName, $testsByFile[$key], true)) {
                         $testsByFile[$key][] = $testName;
                     }
                     $lineCoverage[$key] ??= [];
@@ -153,6 +189,35 @@ class ParityPerTestCoverageReader
         $path = str_replace('\\', '/', $path);
         $real = realpath($path);
 
-        return $real !== false ? $real : $path;
+        return $real !== false ? str_replace('\\', '/', $real) : $path;
+    }
+
+    private function normalizeRelativePath(string $path): ?string
+    {
+        $path = str_replace('\\', '/', $path);
+        if ($path === '' || str_contains($path, "\0") || str_starts_with($path, '/') || preg_match('#^[A-Za-z]:/#', $path) === 1) {
+            return null;
+        }
+
+        $segments = [];
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                return null;
+            }
+            $segments[] = $segment;
+        }
+
+        return $segments === [] ? null : implode('/', $segments);
+    }
+
+    private function isPathWithin(string $path, string $parent): bool
+    {
+        $path = rtrim($path, '/');
+        $parent = rtrim($parent, '/');
+
+        return $path !== $parent && str_starts_with($path, $parent.'/');
     }
 }

@@ -25,7 +25,7 @@ class SettingsTest extends TestCase
         expect($settings->minCoverage)->toBe(80.0);
         expect($settings->minCoverageGlobal)->toBeNull();
         expect($settings->minMatchedCoverage)->toBeNull();
-        expect($settings->coveragePaths)->toBe(['coverage-xml', 'clover.xml', 'cobertura.xml']);
+        expect($settings->coveragePaths)->toBe(['.parity/per-test', 'parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']);
     }
 
     // --- settings block ---
@@ -150,7 +150,7 @@ class SettingsTest extends TestCase
     {
         $settings = Settings::fromConfig([]);
 
-        expect($settings->coveragePaths)->toBe(['coverage-xml', 'clover.xml', 'cobertura.xml']);
+        expect($settings->coveragePaths)->toBe(['.parity/per-test', 'parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml']);
     }
 
     // --- full realistic config ---

@@ -51,7 +51,7 @@ S010-FR-007.c The lint job **MUST NOT** modify files in the CI environment; it *
 S010-FR-008 [P1] The CI test job **MUST** execute the full Pest test suite.
 S010-FR-008.a The job **MUST** run `php artisan test` (Pest entry point via Laravel).
 S010-FR-008.b The job **MUST** pass `--coverage-clover=coverage.xml` to generate Clover XML coverage.
-S010-FR-008.c The job **MUST** use PHP 8.2 with Xdebug coverage driver configured.
+S010-FR-008.c The job **MUST** use PHP 8.4 with Xdebug coverage driver configured.
 S010-FR-008.d If any test fails, the job **MUST** fail with a non-zero exit code.
 
 ### CI Coverage Job
@@ -87,7 +87,7 @@ S010-FR-012.c The Release **MUST** include a SHA-256 checksum file (`parity.phar
 ### PHAR Version Injection
 
 S010-FR-013 [P1] The PHAR binary **MUST** report the correct version when run with `parity --version`.
-S010-FR-013.a The Box configuration **MUST** include a `metadata` section or equivalent mechanism to inject the version at build time.
+S010-FR-013.a The Box configuration **MUST** package the tracked `VERSION` file as the build-time version source.
 S010-FR-013.b The version string **MUST** match the git tag associated with the build (e.g., `v1.0.0`).
 
 ### Laravel Pint Integration
@@ -99,10 +99,11 @@ S010-FR-014.c Pint **SHOULD** be run as a pre-commit hook (via Composer scripts 
 
 ### Release Version Bumping
 
-S010-FR-015 [P1] The release process **MUST** update the version in `composer.json` and a `VERSION` file.
-S010-FR-015.a The version **MUST** follow Semantic Versioning (MAJOR.MINOR.PATCH).
+S010-FR-015 [P1] The release process **MUST** update the tracked `VERSION` file and `CHANGELOG.md`.
+S010-FR-015.a The `VERSION` value **MUST** match the release tag format `v{MAJOR}.{MINOR}.{PATCH}`.
 S010-FR-015.b Version bumping **MUST** be automated via a release script (e.g., `dev/release-version.sh`).
 S010-FR-015.c The script **MUST** accept `patch`, `minor`, or `major` as an argument to indicate bump type.
+S010-FR-015.d The script **MUST** support a non-mutating `--dry-run` preview and an explicit `--push` mode.
 
 ### Changelog Generation
 
@@ -115,16 +116,16 @@ S010-FR-016.c The changelog entry **MUST** include a section for Added, Changed,
 
 S010-FR-017 [P1] Every release **MUST** create a corresponding git tag.
 S010-FR-017.a The tag format **MUST** be `v{MAJOR}.{MINOR}.{PATCH}` (e.g., `v1.0.0`).
-S010-FR-017.b The tag **MUST** be pushed to the remote immediately after creation.
+S010-FR-017.b When `--push` is supplied, the release commit and tag **MUST** be pushed to the remote.
 S010-FR-017.c The tag **MUST** be annotated (`git tag -a`) with a message referencing the version and changelog entry.
 
 ### GitHub Release Creation
 
 S010-FR-018 [P1] Every git tag push **MUST** trigger GitHub Release creation via GitHub Actions.
 S010-FR-018.a The Release **MUST** be titled with the version string (e.g., `v1.0.0`).
-S010-FR-018.b The Release body **MUST** contain the changelog entry for that version.
+S010-FR-018.b The Release body **MUST** contain generated release notes, while `CHANGELOG.md` remains the curated project changelog.
 S010-FR-018.c The PHAR binary **MUST** be attached as a Release asset.
-S010-FR-018.d The Release **MUST** be published (not draft) when the tag is pushed to `main`.
+S010-FR-018.d The Release **MUST** remain a draft until the public Packagist smoke test passes, then be published.
 
 ### Sample Project Matrix
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * Specs: S003
+ * Specs: S003, S011
  *
  * Normalizes a single-test coverage artifact into Parity's per-test coverage report shape.
  */
@@ -57,7 +57,7 @@ class ParityTestArtifactNormalizer
      */
     private function buildReport(array $lineCoverage, array $totalExecutable, string $testName, string $projectRoot): array
     {
-        $files = [];
+        $filesByPath = [];
         $root = str_replace('\\', '/', $projectRoot);
         $realRoot = realpath($projectRoot);
         if ($realRoot !== false) {
@@ -68,24 +68,60 @@ class ParityTestArtifactNormalizer
         sort($keys);
 
         foreach ($keys as $path) {
-            if (str_starts_with($path, $root.'/')) {
+            $relativePath = $this->relativeCoveragePath((string) $path, $root);
+            if ($relativePath === null) {
                 continue;
             }
 
-            $coveredLines = isset($lineCoverage[$path]) ? array_map('intval', array_keys($lineCoverage[$path])) : [];
+            $executable = max(0, (int) ($totalExecutable[$path] ?? 0));
+            if ($executable === 0) {
+                continue;
+            }
+
+            $coveredLines = isset($lineCoverage[$path])
+                ? array_values(array_filter(array_map('intval', array_keys($lineCoverage[$path])), fn (int $line): bool => $line > 0))
+                : [];
             sort($coveredLines);
 
-            $files[] = [
-                'path' => $path,
-                'totalExecutableLines' => (int) ($totalExecutable[$path] ?? 0),
-                'coveredLines' => $coveredLines,
+            $filesByPath[$relativePath] ??= [
+                'path' => $relativePath,
+                'totalExecutableLines' => 0,
+                'coveredLines' => [],
             ];
+            $filesByPath[$relativePath]['totalExecutableLines'] = max(
+                $filesByPath[$relativePath]['totalExecutableLines'],
+                $executable
+            );
+            $filesByPath[$relativePath]['coveredLines'] = array_values(array_unique(array_merge(
+                $filesByPath[$relativePath]['coveredLines'],
+                $coveredLines
+            )));
+            sort($filesByPath[$relativePath]['coveredLines']);
         }
+
+        ksort($filesByPath);
 
         return [
             'version' => 1,
             'test' => $testName,
-            'files' => $files,
+            'files' => array_values($filesByPath),
         ];
+    }
+
+    private function relativeCoveragePath(string $path, string $projectRoot): ?string
+    {
+        $path = str_replace('\\', '/', $path);
+        if (str_starts_with($path, $projectRoot.'/')) {
+            $path = substr($path, strlen($projectRoot) + 1);
+        } elseif (str_starts_with($path, '/') || preg_match('#^[A-Za-z]:/#', $path) === 1) {
+            return null;
+        }
+
+        $segments = array_values(array_filter(explode('/', $path), fn (string $segment): bool => $segment !== '' && $segment !== '.'));
+        if ($segments === [] || in_array('..', $segments, true)) {
+            return null;
+        }
+
+        return implode('/', $segments);
     }
 }

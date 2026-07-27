@@ -44,6 +44,7 @@ jobs:
       - name: Validate release candidate
         run: |
           composer validate --strict
+          composer audit --locked --no-interaction
           ./vendor/bin/pint --test
           XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
           php parity check --format=json
@@ -52,7 +53,7 @@ jobs:
         run: |
           mkdir -p vendor/humbug/php-scoper/vendor-hotfix
           echo "<?php // vendor-hotfix placeholder" > vendor/humbug/php-scoper/vendor-hotfix/placeholder.php
-          printf '%s\n' "${GITHUB_REF_NAME#v}" > VERSION
+          printf '%s\n' "${GITHUB_REF_NAME}" > VERSION
           ./vendor/bin/box compile --no-interaction
         env:
           BOX_CACHE_ENABLED: false
@@ -60,7 +61,7 @@ jobs:
       - name: Verify PHAR
         run: |
           chmod +x parity.phar
-          ./parity.phar --version
+          test "$(./parity.phar --version)" = "Parity ${GITHUB_REF_NAME}"
           ./parity.phar check --format=json
 
       - name: Generate checksum

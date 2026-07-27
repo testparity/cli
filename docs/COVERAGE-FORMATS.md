@@ -1,6 +1,6 @@
 # Coverage formats and per-test data
 
-Specs: S003, S004, S010
+Specs: S003, S004, S010, S011
 
 Coverage tools produce several report formats. Only attribution-capable formats store **which test covered which line**.
 

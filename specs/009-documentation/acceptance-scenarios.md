@@ -38,7 +38,7 @@
 ### S009-AS-006 CI Integration Examples Work in GitHub Actions [P1]
 
 **Given** a developer copies the GitHub Actions workflow from `ci-integration.md`
-**When** the workflow runs on a GitHub Actions runner with PHP 8.2 and Parity installed
+**When** the workflow runs on a GitHub Actions runner with PHP 8.4 and Parity installed
 **Then** `parity check` executes and produces the expected table or JSON output
 **And** the exit code correctly reflects whether violations were found
 
@@ -58,7 +58,7 @@
 
 ### S009-AS-009 Getting Started Guide Installs and Runs Successfully [P1]
 
-**Given** a developer with PHP 8.2 and Composer installed follows the getting-started guide from a fresh project
+**Given** a developer with PHP 8.4 and Composer installed follows the getting-started guide from a fresh project
 **When** they run the three quick-start commands: `composer global require testparity/parity`, `parity init`, `parity check`
 **Then** `parity init` creates a `parity.yaml` file and `parity check` produces output without errors
 **And** the example output shown in the guide matches the actual output format

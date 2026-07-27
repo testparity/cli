@@ -27,7 +27,7 @@ use Symfony\Component\Yaml\Yaml;
 class CheckCommand extends Command
 {
     protected $signature = 'check
-        {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON or PHPUnit XML; default is count only)}
+        {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON, Parity per-test reports, or PHPUnit XML; default is count only)}
         {--format=table : Output format: table (default) or json}
         {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
@@ -80,6 +80,7 @@ class CheckCommand extends Command
         $totalExecutable = $coverageData['totalExecutable'];
         $globalPercent = $coverageData['globalPercent'];
         $hasAttributionCoverage = $coverageData['hasAttributionCoverage'];
+        $hasExecutableLineMetadata = $totalExecutable !== [];
 
         // ── Global coverage check ─────────────────────────────────
         $minCoverageGlobal = $settings->minCoverageGlobal;
@@ -104,6 +105,11 @@ class CheckCommand extends Command
         $hasFailure = $globalPercent !== null && $minCoverageGlobal !== null && $globalPercent < $minCoverageGlobal;
         $expectedTestPaths = [];
         $allFileCoverages = [];
+        $allMatchedCoverages = [];
+        $minimumCoverageRulesSeen = false;
+        $minimumCoverageRulesPassed = true;
+        $matchedCoverageRulesSeen = false;
+        $matchedCoverageRulesPassed = true;
         $jsonReport = [
             'passed' => true,
             'global_coverage' => $globalPercent,
@@ -193,6 +199,22 @@ class CheckCommand extends Command
                     $rule = $resolved['rule'];
                     $result = $rule->evaluate($context, $resolved['params']);
                     $ruleResults[] = ['rule' => $rule, 'result' => $result, 'params' => $resolved['params']];
+                    if ($rule->name() === 'minimum-coverage') {
+                        $minimumCoverageRulesSeen = true;
+                        if ($rule->isEnforced() && ! $result->passed) {
+                            $minimumCoverageRulesPassed = false;
+                        }
+                    }
+                    if ($rule->name() === 'matched-coverage') {
+                        $matchedCoverageRulesSeen = true;
+                        if ($rule->isEnforced() && ! $result->passed) {
+                            $matchedCoverageRulesPassed = false;
+                        }
+                        $matchedValue = rtrim((string) $result->value, '%');
+                        if (is_numeric($matchedValue)) {
+                            $allMatchedCoverages[] = (float) $matchedValue;
+                        }
+                    }
                     if ($rule->isEnforced() && ! $result->passed) {
                         $allPassed = false;
                     }
@@ -203,7 +225,9 @@ class CheckCommand extends Command
                 }
 
                 $expectedTestPaths[$expectedTestRelative] = true;
-                $allFileCoverages[] = $coveragePercent;
+                if (! $hasExecutableLineMetadata || $executable > 0) {
+                    $allFileCoverages[] = $coveragePercent;
+                }
 
                 $dirUnderSource = dirname($relativeSource);
                 $relativeTest = ($dirUnderSource === '.' ? '' : $dirUnderSource.'/').basename($expectedTestRelative);
@@ -261,12 +285,19 @@ class CheckCommand extends Command
         }
 
         // ── Summary (table mode) ──────────────────────────────────
-        $minCoverageDefault = $settings->minCoverage;
-        $minMatchedCoverageDefault = $settings->minMatchedCoverage;
         $perFileMin = $allFileCoverages !== [] ? min($allFileCoverages) : null;
         $perFileAvg = $allFileCoverages !== [] ? round(array_sum($allFileCoverages) / count($allFileCoverages), 2) : null;
+        $matchedFileMin = $allMatchedCoverages !== [] ? min($allMatchedCoverages) : null;
         $this->title('Summary');
-        $this->outputCoverageSummaryTable($globalPercent, $minCoverageGlobal, $minCoverageDefault, $minMatchedCoverageDefault, $perFileMin, $perFileAvg);
+        $this->outputCoverageSummaryTable(
+            globalPercent: $globalPercent,
+            minCoverageGlobal: $minCoverageGlobal,
+            perFileMin: $perFileMin,
+            perFileAvg: $perFileAvg,
+            perFilePassed: $minimumCoverageRulesSeen ? $minimumCoverageRulesPassed : null,
+            matchedFileMin: $matchedFileMin,
+            matchedFilePassed: $matchedCoverageRulesSeen ? $matchedCoverageRulesPassed : null,
+        );
 
         if ($hasAttributionCoverage && $testsByFile !== []) {
             $this->warnTestsNotMatchingAnyStructure($testsByFile, $expectedTestPaths, $namespaceHelper);
@@ -531,6 +562,8 @@ class CheckCommand extends Command
         } else {
             $coverageReader = new CoverageReader;
             $coverageMap = $coverageReader->read($coveragePath, $projectRoot);
+            $executableCoverage = $coverageReader->readExecutableLines($coveragePath, $projectRoot);
+            $totalExecutable = $executableCoverage['totalExecutable'];
             $globalPercent = $minCoverageGlobal !== null ? $coverageReader->readGlobalCoverage($coveragePath) : null;
         }
 
@@ -593,15 +626,21 @@ class CheckCommand extends Command
         return implode('/', $segments).'.php';
     }
 
-    private function outputCoverageSummaryTable(?float $globalPercent, ?float $minCoverageGlobal, float $minCoverageDefault, ?float $minMatchedCoverage = null, ?float $perFileMin = null, ?float $perFileAvg = null): void
-    {
+    private function outputCoverageSummaryTable(
+        ?float $globalPercent,
+        ?float $minCoverageGlobal,
+        ?float $perFileMin = null,
+        ?float $perFileAvg = null,
+        ?bool $perFilePassed = null,
+        ?float $matchedFileMin = null,
+        ?bool $matchedFilePassed = null,
+    ): void {
         $rows = [];
 
         $globalValue = $globalPercent !== null ? sprintf('%.2f%%', $globalPercent) : '—';
         $globalRequired = $minCoverageGlobal !== null ? sprintf('%.0f%%', $minCoverageGlobal) : '—';
-        $globalOk = $globalPercent !== null && $minCoverageGlobal !== null && $globalPercent >= $minCoverageGlobal;
-        $globalStatus = $minCoverageGlobal !== null
-            ? ($globalOk ? '<fg=green>OK</>' : '<fg=red>FAIL</>')
+        $globalStatus = $globalPercent !== null && $minCoverageGlobal !== null
+            ? ($globalPercent >= $minCoverageGlobal ? '<fg=green>OK</>' : '<fg=red>FAIL</>')
             : '<fg=gray>—</>';
         $rows[] = ['Global', $globalValue, $globalRequired, $globalStatus];
 
@@ -609,14 +648,17 @@ class CheckCommand extends Command
         $rows[] = ['Per-file avg (all tests)', $perFileAvgValue, '—', '<fg=gray>—</>'];
 
         $perFileValue = $perFileMin !== null ? sprintf('%.2f%%', $perFileMin) : '—';
-        $perFileOk = $perFileMin !== null && $perFileMin >= $minCoverageDefault;
-        $perFileStatus = $perFileMin !== null
-            ? ($perFileOk ? '<fg=green>OK</>' : '<fg=red>FAIL</>')
+        $perFileStatus = $perFileMin !== null && $perFilePassed !== null
+            ? ($perFilePassed ? '<fg=green>OK</>' : '<fg=red>FAIL</>')
             : '<fg=gray>—</>';
-        $rows[] = ['Per-file min (all tests)', $perFileValue, sprintf('%.0f%%', $minCoverageDefault), $perFileStatus];
+        $rows[] = ['Per-file min (all tests)', $perFileValue, 'Per rule', $perFileStatus];
 
-        if ($minMatchedCoverage !== null) {
-            $rows[] = ['Per-file min (matching test only)', '—', sprintf('%.0f%%', $minMatchedCoverage), '<fg=gray>—</>'];
+        if ($matchedFilePassed !== null) {
+            $matchedFileValue = $matchedFileMin !== null ? sprintf('%.2f%%', $matchedFileMin) : '—';
+            $matchedFileStatus = $matchedFileMin !== null
+                ? ($matchedFilePassed ? '<fg=green>OK</>' : '<fg=red>FAIL</>')
+                : '<fg=gray>—</>';
+            $rows[] = ['Per-file min (matching test only)', $matchedFileValue, 'Per rule', $matchedFileStatus];
         }
 
         $this->newLine();

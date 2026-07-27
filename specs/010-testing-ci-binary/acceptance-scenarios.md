@@ -47,8 +47,10 @@
 
 **Given** the repository is on the `main` branch with no uncommitted changes
 **When** a maintainer runs `./dev/release-version.sh minor`
-**Then** the `VERSION` file **MUST** contain the new version string
+**Then** the `VERSION` file **MUST** contain the new `v{MAJOR}.{MINOR}.{PATCH}` version string
 **And** `CHANGELOG.md` **MUST** contain a new entry with the current date and version
+**And** a release commit and matching annotated tag **MUST** exist locally
+**And** no remote push **MUST** occur
 
 ### S010-AS-009 Release Script Creates Git Tag [P1]
 

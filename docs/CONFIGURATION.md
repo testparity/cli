@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Specs: S006, S007
+Specs: S006, S007, S011
 
 Parity reads `parity.yaml` from the project root, or from the path passed with `--config`.
 
@@ -57,6 +57,7 @@ test:
   command: "./vendor/bin/pest {test_abs} --coverage-clover={coverage}"
   coverage: ".parity/tmp/{slug}.xml"
   reports: ".parity/per-test"
+  timeout: 300
 ```
 
 Then put that directory first in `coverage_xml`:
@@ -64,3 +65,17 @@ Then put that directory first in `coverage_xml`:
 ```yaml
 coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 ```
+
+Supported placeholders:
+
+| Placeholder | Value |
+| --- | --- |
+| `{test}` | Expected test path relative to the project root |
+| `{test_abs}` | Absolute expected test path |
+| `{coverage}` | Absolute path where the isolated coverage artifact must be written |
+| `{slug}` | Stable short hash derived from the expected test path |
+| `{project_root}` | Absolute project root |
+
+`parity test` uses `test.reports` unless `--output` overrides it. `test.timeout` is the positive per-runner timeout in seconds and defaults to `300`; `--timeout` overrides it. The command runs `parity check` automatically unless `--no-check` is supplied.
+
+Use a descendant of `.parity/` for temporary coverage, separate from `test.reports`. Parity removes each runner artifact after use, stages report output, and refuses roots, nested symlinks, overlapping paths, files, or unowned non-empty directories, so a configuration typo cannot recursively remove unrelated data.

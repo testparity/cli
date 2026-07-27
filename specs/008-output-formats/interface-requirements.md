@@ -131,14 +131,15 @@ S008-IF-004 [P1] The coverage summary table in table mode **MUST** have this str
 |----------------------------------|---------|----------|--------|
 | Global                           | {n}%    | {m}%     | OK/FAIL|
 | Per-file avg (all tests)         | {n}%    | --       | --     |
-| Per-file min (all tests)         | {n}%    | {m}%     | OK/FAIL|
-| Per-file min (matching test only)| --      | {m}%     | --     |  <-- only if min_matched_coverage set
+| Per-file min (all tests)         | {n}%    | Per rule | OK/FAIL|
+| Per-file min (matching test only)| {n}%    | Per rule | OK/FAIL|  <-- only if a matched-coverage rule is evaluated
 ```
 
 S008-IF-004.a Values **MUST** be formatted with `sprintf('%.2f%%', $value)` for percentages.
-S008-IF-004.b Required values **MUST** be formatted with `sprintf('%.0f%%', $value)` for thresholds.
+S008-IF-004.b The global Required value **MUST** be formatted with `sprintf('%.0f%%', $value)`. Rule-specific aggregate rows **MUST** display the literal `Per rule`.
 S008-IF-004.c Missing or non-applicable values **MUST** display `--` (em dash character).
 S008-IF-004.d Status cells **MUST** display `<fg=green>OK</>` when the value meets the requirement, `<fg=red>FAIL</>` when below, or `<fg=gray>--</>` when not applicable.
+S008-IF-004.e Per-file status cells **MUST** aggregate the corresponding enforced `RuleResult::$passed` values rather than compare every file to a single top-level default.
 
 ### Rule-to-Column Mapping Contract
 

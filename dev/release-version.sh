@@ -20,7 +20,7 @@ if [[ ! -f "$VERSION_FILE" ]]; then
     exit 1
 fi
 
-VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
+VERSION=$(tr -d '[:space:]' < "$VERSION_FILE")
 CHANGELOG_FILE="$PROJECT_DIR/CHANGELOG.md"
 
 # Parse current version
@@ -42,8 +42,17 @@ for arg in "$@"; do
         --dry-run) DRY_RUN=true ;;
         --push) PUSH=true ;;
         patch|minor|major) BUMP_TYPE=$arg ;;
+        *)
+            echo "ERROR: Unknown argument: $arg" >&2
+            exit 1
+            ;;
     esac
 done
+
+if $DRY_RUN && $PUSH; then
+    echo "ERROR: --dry-run and --push cannot be used together." >&2
+    exit 1
+fi
 
 # Compute new version
 case $BUMP_TYPE in
@@ -65,10 +74,17 @@ echo "Bump type: $BUMP_TYPE"
 echo "New version: $NEW_VERSION"
 
 if $DRY_RUN; then
-    echo "[DRY RUN] Would update VERSION: $VERSION → $NEW_VERSION"
+    echo "[DRY RUN] Would update VERSION: $VERSION -> $NEW_VERSION"
     echo "[DRY RUN] Would update CHANGELOG.md date to $TODAY"
-    echo "[DRY RUN] Would create git commit + tag + push"
+    echo "[DRY RUN] Would create a git commit and annotated tag"
+    echo "[DRY RUN] A real run with --push would publish both"
     exit 0
+fi
+
+CURRENT_BRANCH=$(git branch --show-current)
+if [[ "$CURRENT_BRANCH" != "main" ]]; then
+    echo "ERROR: Releases must be prepared from main; current branch is ${CURRENT_BRANCH:-detached HEAD}." >&2
+    exit 1
 fi
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -76,9 +92,14 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     exit 1
 fi
 
+if git rev-parse --verify --quiet "refs/tags/$NEW_VERSION" >/dev/null; then
+    echo "ERROR: Tag $NEW_VERSION already exists." >&2
+    exit 1
+fi
+
 # 1. Update VERSION
-echo "$NEW_VERSION_NUMBER" > "$VERSION_FILE"
-echo "Updated VERSION: $NEW_VERSION_NUMBER"
+echo "$NEW_VERSION" > "$VERSION_FILE"
+echo "Updated VERSION: $NEW_VERSION"
 
 # 2. Prepend new changelog entry
 CHANGELOG_TMP=$(mktemp)
@@ -115,5 +136,5 @@ if $PUSH; then
     echo "Released $NEW_VERSION"
 else
     echo "[--push not specified] Skipping remote push"
-    echo "To release, run: ./dev/release-version.sh $BUMP_TYPE --push"
+    echo "To publish this prepared release, run: git push origin main $NEW_VERSION"
 fi

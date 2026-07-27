@@ -6,3 +6,7 @@
 | S011-SC-002 | Running `parity test` twice against the same project state **MUST** produce the same manifest `reports` ordering and the same report file slugs for the same discovered test paths. |
 | S011-SC-003 | If any isolated test runner invocation fails, `parity test` **MUST** return exit code 1 and **MUST NOT** continue executing later discovered tests. |
 | S011-SC-004 | When a file is covered only by its owning isolated test run, `parity check` consuming the generated directory **MUST** report full matched coverage for that file. |
+| S011-SC-005 | Failed, timed-out, or coverage-empty generation **MUST NOT** replace the last complete report set. |
+| S011-SC-006 | Misconfigured output or artifact paths **MUST NOT** delete project roots, user directories, symlinks, or unowned data. |
+| S011-SC-007 | Native report parsing **MUST NOT** read files outside the declared `reports/` directory. |
+| S011-SC-008 | Every isolated runner attempt **MUST** leave no generated coverage artifact or ownership marker after completion. |

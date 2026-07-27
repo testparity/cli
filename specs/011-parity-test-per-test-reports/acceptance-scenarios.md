@@ -59,3 +59,36 @@
 **Given** a structure entry with `file_map` routing `Foo.php` to `Ownership/FooOwnershipTest.php`
 **When** `parity test` discovers expected tests
 **Then** `Ownership/FooOwnershipTest.php` is executed instead of convention-derived mapping
+
+### S011-AS-009 Missing coverage fails without replacing prior reports [P1]
+
+**Given** a valid prior Parity per-test report directory
+**And** an isolated runner exits successfully without producing executable source coverage
+**When** `parity test` is executed
+**Then** the command exits with code 1
+**And** the prior report manifest remains unchanged
+**And** no staging report directory remains
+
+### S011-AS-010 Dangerous output target is rejected before execution [P1]
+
+**Given** `test.reports` or `--output` resolves to the project root or an unowned non-empty directory
+**When** `parity test` is executed
+**Then** the command exits with code 1 before running a test
+**And** no existing file under that target is removed
+
+### S011-AS-011 Runner timeout fails cleanly [P1]
+
+**Given** an isolated test takes longer than the configured positive timeout
+**When** `parity test` is executed
+**Then** the process is stopped
+**And** the command names the timed-out relative test path
+**And** the command exits with code 1 without replacing the prior report set
+**And** the generated runner artifact and ownership marker are removed
+
+### S011-AS-012 Nested symlink and overlapping artifact targets are rejected [P1]
+
+**Given** a report or coverage target resolves through an existing symlink component
+**Or** a coverage target equals, contains, or is contained by the report output directory
+**When** `parity test` validates its workspace
+**Then** the command exits with code 1 before running a test
+**And** no existing report or unrelated file is removed

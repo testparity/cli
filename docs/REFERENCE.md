@@ -1,6 +1,6 @@
 # Implementation Reference
 
-Specs: S001, S002, S003, S004, S005, S006, S007, S008, S010
+Specs: S001, S002, S003, S004, S005, S006, S007, S008, S010, S011
 
 This page maps the public CLI behavior to the implementation surface in `app/`. It is intended as the complete hand-off reference for maintainers, plugin authors, and deployment owners.
 
@@ -17,7 +17,7 @@ Implementation: `app/Commands/InitCommand.php`
 - `settings.test_suffix`
 - `settings.test_extension`
 - `settings.namespace_separator`
-- `coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]`
+- `coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]`
 - `min_coverage`
 - optional `test` block for per-test report generation
 - one example `structure` block with `paths.source`, `paths.test`, and rules
@@ -170,7 +170,7 @@ For PHP projects, PHPUnit XML remains the most direct native attribution source.
 
 ### `test`
 
-Implementation: `app/Commands/TestCommand.php`
+Implementation: `app/Commands/TestCommand.php`, `app/Services/ParityTestWorkspace.php`
 
 `parity test` runs each expected test file individually, normalizes the resulting single-test coverage artifact into Parity's native per-test report format, writes a report directory, and then runs `parity check` against that directory by default.
 
@@ -181,6 +181,7 @@ test:
   command: "./vendor/bin/pest {test_abs} --coverage-clover={coverage}"
   coverage: ".parity/tmp/{slug}.xml"
   reports: ".parity/per-test"
+  timeout: 300
 ```
 
 Supported placeholders:
@@ -190,6 +191,10 @@ Supported placeholders:
 - `{coverage}` path where the single-test coverage artifact must be written
 - `{slug}` stable short hash derived from the expected test path
 - `{project_root}` absolute project root
+
+`--output` overrides `test.reports`, `--timeout` overrides the default 300-second process timeout, and `--no-check` stops after report generation.
+
+`ParityTestWorkspace` validates artifact ownership, every existing path component, and report/coverage separation; removes runner artifacts after every attempt; writes into a sibling staging directory; atomically publishes only complete report sets; and preserves the previous set on failure. The reader rejects unsupported schema versions, mismatched test IDs, and report or source paths that escape the declared report root.
 
 ## Rules
 
@@ -289,6 +294,8 @@ Table mode renders:
 
 The first two columns are always `Source` and `Test`; the final column is always `OK`. Rule columns are added from `RuleInterface::columnHeader()`.
 
+Summary rows use `Per rule` for structure-specific thresholds and derive `OK` or `FAIL` from the evaluated rules, so they cannot contradict file rows with overrides. Files with zero executable lines are excluded from minimum and average values when the coverage format exposes executable-line metadata.
+
 ### JSON mode
 
 JSON mode emits only this top-level shape:
@@ -312,7 +319,7 @@ Each structure contains `name`, `source_path`, `test_path`, and `files`. Each fi
 
 `app/Providers/GitVersionFallbackProvider.php` binds `git.version` to the same `VERSION` fallback behavior for packaged/runtime contexts.
 
-`dev/release-version.sh` handles dry-run and real version bumps, changelog updates, tag creation, PHAR build guidance, and dirty-worktree protection.
+`dev/release-version.sh` handles dry-run and real version bumps, changelog updates, local annotated tags, optional pushes, and dirty-worktree or duplicate-tag protection.
 
 ## Samples
 

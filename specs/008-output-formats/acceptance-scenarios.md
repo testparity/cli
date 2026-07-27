@@ -71,3 +71,14 @@
 **Given** a valid project with mixed pass/fail results
 **When** the user runs `parity check > output.txt`
 **Then** `output.txt` contains no ANSI escape sequences (no `\033[` or `\e[` patterns). Symfony Console's TTY detection suppresses decoration when stdout is not a terminal.
+
+### S008-AS-013 Rule-specific summary remains consistent [P1]
+
+**Given** a project whose structures use different `minimum-coverage` thresholds
+**And** every evaluated minimum-coverage rule passes
+**And** the coverage report includes a zero-executable interface
+**When** the user runs `parity check`
+**Then** the zero-executable file is excluded from the summary minimum when line metadata is available
+**And** the Required cell displays `Per rule`
+**And** the per-file summary status displays `OK`
+**And** the command exits with code 0

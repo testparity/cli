@@ -2,7 +2,7 @@
 
 ### Performance
 
-S010-NF-001 [P1] The full test suite **MUST** execute in under 60 seconds on a standard developer machine (PHP 8.2, 8GB RAM).
+S010-NF-001 [P1] The full test suite **MUST** execute in under 60 seconds on a standard developer machine (PHP 8.4, 8GB RAM).
 S010-NF-002 [P1] The CI pipeline **MUST** complete all jobs within 5 minutes on a GitHub-hosted runner.
 
 ### Binary Size

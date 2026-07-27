@@ -6,15 +6,18 @@ namespace App\Commands;
 
 use App\Services\NamespaceHelper;
 use App\Services\ParityTestArtifactNormalizer;
+use App\Services\ParityTestWorkspace;
 use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
+use RuntimeException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Specs: S001, S003, S006
+ * Specs: S001, S003, S006, S011
  */
 class TestCommand extends Command
 {
@@ -22,6 +25,7 @@ class TestCommand extends Command
         {--config= : Path to parity.yaml (default: ./parity.yaml)}
         {--format=table : Output format passed to parity check: table (default) or json}
         {--output= : Directory for parity per-test reports (default: test.reports or .parity/per-test)}
+        {--timeout= : Maximum seconds for each test process (default: test.timeout or 300)}
         {--show-tests : Forward --show-tests to parity check}
         {--no-check : Only generate per-test reports; do not run parity check afterwards}';
 
@@ -52,6 +56,7 @@ class TestCommand extends Command
         $commandTemplate = isset($testConfig['command']) && is_string($testConfig['command']) ? $testConfig['command'] : null;
         $coverageTemplate = isset($testConfig['coverage']) && is_string($testConfig['coverage']) ? $testConfig['coverage'] : null;
         $reportsRelative = (string) ($this->option('output') ?: ($testConfig['reports'] ?? '.parity/per-test'));
+        $timeout = $this->resolveTimeout($testConfig);
 
         if ($commandTemplate === null || trim($commandTemplate) === '') {
             $this->error('Missing test.command in parity.yaml. Example: test.command: "./vendor/bin/pest {test} --coverage-clover={coverage}"');
@@ -65,6 +70,10 @@ class TestCommand extends Command
             return self::FAILURE;
         }
 
+        if ($timeout === null) {
+            return self::FAILURE;
+        }
+
         $settings = Settings::fromConfig($config);
         $namespaceHelper = new NamespaceHelper(settings: $settings);
         $tests = $this->discoverExpectedTests($config, $settings, $namespaceHelper, $projectRoot);
@@ -75,10 +84,15 @@ class TestCommand extends Command
             return self::SUCCESS;
         }
 
-        $reportsDir = $this->resolveConfiguredPath($reportsRelative, $projectRoot);
-        $reportsSubdir = $reportsDir.'/reports';
-        File::deleteDirectory($reportsDir);
-        File::ensureDirectoryExists($reportsSubdir);
+        $workspace = new ParityTestWorkspace($projectRoot);
+        try {
+            $reportsDir = $workspace->reportTarget($this->resolveConfiguredPath($reportsRelative, $projectRoot));
+            $stagingDir = $workspace->createStagingDirectory($reportsDir);
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $normalizer = new ParityTestArtifactNormalizer;
         $manifest = [
@@ -87,80 +101,105 @@ class TestCommand extends Command
             'reports' => [],
         ];
 
-        foreach ($tests as $relativeTest => $testIdentifier) {
-            $slug = substr(sha1($relativeTest), 0, 16);
-            $placeholders = [
-                'slug' => $slug,
-                'test' => $relativeTest,
-                'test_abs' => $projectRoot.'/'.$relativeTest,
-                'coverage' => $this->resolveConfiguredPath($this->expandTemplate($coverageTemplate, [
+        try {
+            foreach ($tests as $relativeTest => $testIdentifier) {
+                $slug = substr(sha1($relativeTest), 0, 16);
+                $coverageConfiguredPath = $this->resolveConfiguredPath($this->expandTemplate($coverageTemplate, [
                     'slug' => $slug,
                     'test' => $relativeTest,
                     'test_abs' => $projectRoot.'/'.$relativeTest,
                     'project_root' => $projectRoot,
-                ]), $projectRoot),
-                'project_root' => $projectRoot,
-            ];
+                ]), $projectRoot);
 
-            $this->removeCoverageArtifact($placeholders['coverage']);
-            $this->ensureCoverageParentExists($placeholders['coverage']);
+                try {
+                    $coveragePath = $workspace->prepareCoverageArtifact($coverageConfiguredPath, $reportsDir);
+                } catch (RuntimeException $e) {
+                    $this->error($e->getMessage());
 
-            $process = Process::fromShellCommandline($this->expandShellCommand($commandTemplate, $placeholders), $projectRoot);
-            $process->setTimeout(null);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                $this->error("Failed running test [{$relativeTest}]");
-                $stderr = trim($process->getErrorOutput());
-                $stdout = trim($process->getOutput());
-                if ($stderr !== '') {
-                    $this->line($stderr);
+                    return self::FAILURE;
                 }
-                if ($stdout !== '') {
-                    $this->line($stdout);
+
+                try {
+                    $placeholders = [
+                        'slug' => $slug,
+                        'test' => $relativeTest,
+                        'test_abs' => $projectRoot.'/'.$relativeTest,
+                        'coverage' => $coveragePath,
+                        'project_root' => $projectRoot,
+                    ];
+
+                    $process = Process::fromShellCommandline($this->expandShellCommand($commandTemplate, $placeholders), $projectRoot);
+                    $process->setTimeout($timeout);
+
+                    try {
+                        $process->run();
+                    } catch (ProcessTimedOutException) {
+                        $this->error("Timed out running test [{$relativeTest}] after {$timeout} seconds.");
+
+                        return self::FAILURE;
+                    }
+
+                    if (! $process->isSuccessful()) {
+                        $this->error("Failed running test [{$relativeTest}]");
+                        $stderr = trim($process->getErrorOutput());
+                        $stdout = trim($process->getOutput());
+                        if ($stderr !== '') {
+                            $this->line($stderr);
+                        }
+                        if ($stdout !== '') {
+                            $this->line($stdout);
+                        }
+
+                        return self::FAILURE;
+                    }
+
+                    $report = $normalizer->normalize($coveragePath, $testIdentifier, $projectRoot);
+                    if (! $workspace->reportHasExecutableCoverage($report)) {
+                        $this->error("Coverage artifact for test [{$relativeTest}] did not contain executable source coverage.");
+
+                        return self::FAILURE;
+                    }
+
+                    $reportRelPath = 'reports/'.$slug.'.json';
+                    try {
+                        $workspace->writeJsonFile($stagingDir.'/'.$reportRelPath, $report);
+                    } catch (RuntimeException $e) {
+                        $this->error($e->getMessage());
+
+                        return self::FAILURE;
+                    }
+
+                    $manifest['reports'][] = [
+                        'test' => $testIdentifier,
+                        'path' => $reportRelPath,
+                    ];
+                } finally {
+                    $workspace->removePreparedCoverageArtifact($coveragePath);
                 }
+            }
+
+            try {
+                $workspace->writeJsonFile($stagingDir.'/index.json', $manifest);
+                $warning = $workspace->publishReports($stagingDir, $reportsDir);
+            } catch (RuntimeException $e) {
+                $this->error($e->getMessage());
 
                 return self::FAILURE;
             }
+            if ($warning !== null) {
+                $this->warn($warning);
+            }
 
-            $report = $normalizer->normalize($placeholders['coverage'], $testIdentifier, $projectRoot);
-            $reportRelPath = 'reports/'.$slug.'.json';
-            file_put_contents($reportsDir.'/'.$reportRelPath, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
-            $manifest['reports'][] = [
-                'test' => $testIdentifier,
-                'path' => $reportRelPath,
-            ];
+            if ((bool) $this->option('no-check')) {
+                $this->info("Wrote parity per-test coverage reports to {$reportsRelative}");
+
+                return self::SUCCESS;
+            }
+
+            return $this->runCheck($config, $reportsRelative, $projectRoot);
+        } finally {
+            $workspace->cleanupDirectory($stagingDir);
         }
-
-        file_put_contents($reportsDir.'/index.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
-
-        if ((bool) $this->option('no-check')) {
-            $this->info("Wrote parity per-test coverage reports to {$reportsRelative}");
-
-            return self::SUCCESS;
-        }
-
-        $checkConfig = $config;
-        $existingCoverage = $checkConfig['coverage_xml'] ?? [];
-        $coverageList = is_array($existingCoverage) ? $existingCoverage : [$existingCoverage];
-        array_unshift($coverageList, $reportsRelative);
-        $checkConfig['coverage_xml'] = array_values(array_unique(array_map('strval', $coverageList)));
-
-        $tempConfigPath = $projectRoot.'/parity.test.yaml';
-        file_put_contents($tempConfigPath, Yaml::dump($checkConfig, 8, 2));
-
-        $arguments = [
-            '--config' => $tempConfigPath,
-            '--format' => (string) $this->option('format'),
-        ];
-        if ((bool) $this->option('show-tests')) {
-            $arguments['--show-tests'] = true;
-        }
-
-        $exitCode = $this->call('check', $arguments);
-        @unlink($tempConfigPath);
-
-        return $exitCode;
     }
 
     /** @return array<string, string> expected test relative path => test identifier */
@@ -176,6 +215,9 @@ class TestCommand extends Command
 
             $sourcePath = $this->resolvePath($entry, 'source');
             $testPath = $this->resolvePath($entry, 'test');
+            if (trim($sourcePath) === '' || trim($testPath) === '') {
+                continue;
+            }
             $fileMap = isset($entry['file_map']) && is_array($entry['file_map']) ? $entry['file_map'] : [];
             $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
@@ -228,34 +270,59 @@ class TestCommand extends Command
         return strtr($template, $replace);
     }
 
-    private function ensureCoverageParentExists(string $path): void
+    private function resolveTimeout(array $testConfig): ?float
     {
-        if ($this->looksLikeDirectoryTarget($path)) {
-            File::ensureDirectoryExists($path);
-
-            return;
+        $configured = $this->option('timeout');
+        if ($configured === null || $configured === '') {
+            $configured = $testConfig['timeout'] ?? 300;
         }
 
-        $parent = dirname($path);
-        if ($parent !== '' && $parent !== '.') {
-            File::ensureDirectoryExists($parent);
+        if (! is_numeric($configured) || (float) $configured <= 0) {
+            $this->error('test.timeout and --timeout must be a positive number of seconds.');
+
+            return null;
         }
+
+        return (float) $configured;
     }
 
-    private function removeCoverageArtifact(string $path): void
+    private function runCheck(array $config, string $reportsPath, string $projectRoot): int
     {
-        if (is_dir($path)) {
-            File::deleteDirectory($path);
-        } elseif (is_file($path)) {
-            @unlink($path);
+        $checkConfig = $config;
+        $existingCoverage = $checkConfig['coverage_xml'] ?? [];
+        $coverageList = is_array($existingCoverage) ? $existingCoverage : [$existingCoverage];
+        array_unshift($coverageList, $reportsPath);
+        $checkConfig['coverage_xml'] = array_values(array_unique(array_map('strval', $coverageList)));
+
+        $tempConfigPath = @tempnam($projectRoot, '.parity-test-');
+        if ($tempConfigPath === false) {
+            $this->error('Could not create a temporary config for parity check.');
+
+            return self::FAILURE;
         }
-    }
 
-    private function looksLikeDirectoryTarget(string $path): bool
-    {
-        $basename = basename($path);
+        try {
+            $contents = Yaml::dump($checkConfig, 8, 2);
+            if (file_put_contents($tempConfigPath, $contents) === false) {
+                $this->error('Could not write the temporary config for parity check.');
 
-        return ! str_contains($basename, '.');
+                return self::FAILURE;
+            }
+
+            $arguments = [
+                '--config' => $tempConfigPath,
+                '--format' => (string) $this->option('format'),
+            ];
+            if ((bool) $this->option('show-tests')) {
+                $arguments['--show-tests'] = true;
+            }
+
+            return $this->call('check', $arguments);
+        } finally {
+            if (is_file($tempConfigPath)) {
+                @unlink($tempConfigPath);
+            }
+        }
     }
 
     private function resolveConfiguredPath(string $path, string $projectRoot): string

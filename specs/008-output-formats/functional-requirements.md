@@ -55,11 +55,13 @@ S008-FR-007.c Below the source line, the test path **MUST** be displayed as `  T
 S008-FR-008 [P1] After all structure tables, the command **MUST** render a `Summary` section in table mode.
 S008-FR-008.a The summary **MUST** use a Symfony Console `title('Summary')` heading.
 S008-FR-008.b The summary **MUST** contain a four-column table with headers: `Coverage`, `Value`, `Required`, `Status`.
-S008-FR-008.c Row 1 **MUST** show `Global` coverage: actual value (formatted as `{n}%` or `--` if null), required value (`{n}%` or `--`), and status (`OK` green / `FAIL` red / `--` gray).
-S008-FR-008.d Row 2 **MUST** show `Per-file avg (all tests)`: the arithmetic mean of all per-file coverage values, with `--` for Required and Status.
-S008-FR-008.e Row 3 **MUST** show `Per-file min (all tests)`: the minimum per-file coverage value, compared against the default `min_coverage` setting.
-S008-FR-008.f Row 4 **MUST** be included only when `min_matched_coverage` is configured, showing `Per-file min (matching test only)`.
+S008-FR-008.c Row 1 **MUST** show `Global` coverage: actual value (formatted as `{n}%` or `--` if null), required value (`{n}%` or `--`), and status (`OK` green / `FAIL` red / `--` gray). Status **MUST** be `--` unless both the value and threshold are available.
+S008-FR-008.d Row 2 **MUST** show `Per-file avg (all tests)`: the arithmetic mean of eligible per-file coverage values, with `--` for Required and Status.
+S008-FR-008.e Row 3 **MUST** show `Per-file min (all tests)`: the minimum eligible per-file coverage value, `Per rule` as Required, and the aggregate pass/fail status of the evaluated `minimum-coverage` rules.
+S008-FR-008.f Row 4 **MUST** be included when at least one `matched-coverage` rule is evaluated. It **MUST** show the minimum measurable matched coverage, `Per rule` as Required, and the aggregate pass/fail status of the evaluated `matched-coverage` rules.
 S008-FR-008.g The summary table **MUST NOT** appear in JSON mode.
+S008-FR-008.h When executable-line metadata is available, files with zero executable lines **MUST** be excluded from per-file minimum and average values. When that metadata is unavailable, every discovered file coverage value **MUST** remain eligible.
+S008-FR-008.i A summary status **MUST NOT** contradict the corresponding evaluated rule results.
 
 ### JSON Format Selection
 

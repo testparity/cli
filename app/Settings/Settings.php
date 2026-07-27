@@ -63,7 +63,7 @@ class Settings
 
     private static function resolveCoveragePaths(array $config): array
     {
-        $coverageXml = $config['coverage_xml'] ?? ['coverage-xml', 'clover.xml', 'cobertura.xml'];
+        $coverageXml = $config['coverage_xml'] ?? ['.parity/per-test', 'parity-coverage.json', 'coverage-xml', 'clover.xml', 'cobertura.xml'];
 
         return is_array($coverageXml) ? $coverageXml : [$coverageXml];
     }

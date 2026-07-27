@@ -33,14 +33,15 @@ settings:
   namespace_separator: "\\"
 
 # Coverage file(s): first existing path is used
-# Prefer attribution-capable formats first: Parity JSON or PHPUnit XML
-coverage_xml: [parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
+# Prefer attribution-capable formats first: Parity per-test, Parity JSON, or PHPUnit XML
+coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml, cobertura.xml]
 
 # Optional: run each expected test individually and let parity build its own attribution reports.
 # test:
 #   command: "./vendor/bin/pest {test} --coverage-clover={coverage}"
 #   coverage: ".parity/tmp/{slug}.xml"
 #   reports: ".parity/per-test"
+#   timeout: 300
 
 # Global coverage thresholds
 min_coverage: 80

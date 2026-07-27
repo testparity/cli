@@ -79,6 +79,7 @@ S008-US-007 [P1] As a developer with multiple structure blocks, I want one table
 | S008-AS-010 | Acceptance | P1 | JSON output parseable by jq | Draft |
 | S008-AS-011 | Acceptance | P1 | Global coverage below threshold in JSON | Draft |
 | S008-AS-012 | Acceptance | P2 | Piped output has no ANSI codes | Draft |
+| S008-AS-013 | Acceptance | P1 | Rule-specific summary remains consistent | Draft |
 | S008-EC-001 | Edge Case | P1 | Empty project (no source files in any structure) | Draft |
 | S008-EC-002 | Edge Case | P1 | All test files missing | Draft |
 | S008-EC-003 | Edge Case | P1 | Zero enforced rules active | Draft |
@@ -93,12 +94,16 @@ S008-US-007 [P1] As a developer with multiple structure blocks, I want one table
 | S008-EC-012 | Edge Case | P1 | Global coverage is null (not configured) | Draft |
 | S008-EC-013 | Edge Case | P2 | Coverage percent exactly at threshold boundary | Draft |
 | S008-EC-014 | Edge Case | P2 | --format with invalid value | Draft |
+| S008-EC-015 | Edge Case | P1 | Structures override default coverage thresholds | Draft |
+| S008-EC-016 | Edge Case | P1 | Coverage includes zero-executable files | Draft |
+| S008-EC-017 | Edge Case | P1 | Global threshold exists without a global value | Draft |
 | S008-SC-001 | Success | P1 | JSON output is always valid JSON | Draft |
 | S008-SC-002 | Success | P1 | Exit codes are deterministic | Draft |
 | S008-SC-003 | Success | P1 | Table rows grouped by directory | Draft |
 | S008-SC-004 | Success | P1 | Informational rules never affect exit code | Draft |
 | S008-SC-005 | Success | P1 | Format flag has no effect on exit code logic | Draft |
 | S008-SC-006 | Success | P1 | JSON contains all evaluated rule results | Draft |
+| S008-SC-007 | Success | P1 | Summary statuses agree with evaluated rule results | Draft |
 
 ## Cross-Spec Dependencies
 

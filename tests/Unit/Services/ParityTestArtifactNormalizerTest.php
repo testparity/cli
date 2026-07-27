@@ -51,6 +51,41 @@ final class ParityTestArtifactNormalizerTest extends TestCase
             removeNormalizerTempDirectory($root);
         }
     }
+
+    public function test_it_converts_absolute_clover_paths_to_unique_project_relative_paths(): void
+    {
+        $root = sys_get_temp_dir().'/parity-normalizer-'.bin2hex(random_bytes(4));
+        mkdir($root.'/src', 0777, true);
+        file_put_contents($root.'/src/Foo.php', "<?php\nreturn 1;\n");
+
+        try {
+            $coveragePath = $root.'/clover.xml';
+            $sourcePath = htmlspecialchars($root.'/src/Foo.php', ENT_XML1);
+            file_put_contents($coveragePath, <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage>
+  <project>
+    <file name="{$sourcePath}">
+      <line num="2" type="stmt" count="1"/>
+      <metrics statements="1" coveredstatements="1"/>
+    </file>
+  </project>
+</coverage>
+XML);
+
+            $report = (new ParityTestArtifactNormalizer)->normalize($coveragePath, 'Tests\\FooTest', $root);
+
+            $this->assertSame([
+                [
+                    'path' => 'src/Foo.php',
+                    'totalExecutableLines' => 1,
+                    'coveredLines' => [2],
+                ],
+            ], $report['files']);
+        } finally {
+            removeNormalizerTempDirectory($root);
+        }
+    }
 }
 
 function removeNormalizerTempDirectory(string $path): void

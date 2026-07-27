@@ -9,6 +9,7 @@ parity test
   [--config=PATH]
   [--format=table|json]
   [--output=PATH]
+  [--timeout=SECONDS]
   [--show-tests]
   [--no-check]
 ```
@@ -16,8 +17,9 @@ parity test
 S011-IF-001.a `--config` **MUST** point to a `parity.yaml` file; when omitted, the command **MUST** look for `./parity.yaml` in the current working directory.
 S011-IF-001.b `--format` **MUST** control the delegated `parity check` output format and default to `table`.
 S011-IF-001.c `--output` **MUST** select the Parity per-test report directory.
-S011-IF-001.d `--show-tests` **MUST** be forwarded to delegated `parity check`.
-S011-IF-001.e `--no-check` **MUST** suppress delegated `parity check`.
+S011-IF-001.d `--timeout` **MUST** accept a positive number of seconds and override `test.timeout`.
+S011-IF-001.e `--show-tests` **MUST** be forwarded to delegated `parity check`.
+S011-IF-001.f `--no-check` **MUST** suppress delegated `parity check`.
 
 ### `test` Config Block Schema
 
@@ -28,11 +30,13 @@ test:
   command: <string>   # Required. Runner template executed once per discovered test file.
   coverage: <string>  # Required. Coverage artifact path template for that single test run.
   reports: <string>   # Optional. Default: ".parity/per-test"
+  timeout: <number>   # Optional. Positive seconds per test. Default: 300.
 ```
 
 S011-IF-002.a `command` **MUST** be a non-empty string.
 S011-IF-002.b `coverage` **MUST** be a non-empty string.
 S011-IF-002.c `reports` **MAY** be omitted.
+S011-IF-002.d `timeout` **MAY** be omitted and **MUST** be a positive number when present.
 
 ### Placeholder Contract
 
@@ -70,7 +74,7 @@ S011-IF-004.a `version` **MUST** be the integer `1`.
 S011-IF-004.b `kind` **MUST** be the exact string `"parity-per-test-coverage"`.
 S011-IF-004.c `reports` **MUST** be an array of objects.
 S011-IF-004.d Each report entry **MUST** contain `test` and `path` string keys.
-S011-IF-004.e Each `path` value **MUST** be relative to the manifest directory.
+S011-IF-004.e Each `path` value **MUST** be relative, traversal-free, and located beneath the manifest directory's `reports/` subdirectory.
 
 ### Per-Test Report File Schema
 
@@ -91,12 +95,14 @@ S011-IF-005 [P1] Each JSON report file referenced by the manifest **MUST** confo
 ```
 
 S011-IF-005.a `version` **MUST** be the integer `1`.
-S011-IF-005.b `test` **MUST** contain the normalized discovered test identifier.
+S011-IF-005.b `test` **MUST** contain the normalized discovered test identifier and match its manifest entry.
 S011-IF-005.c `files` **MUST** be an array of file entries sorted by path.
 S011-IF-005.d Each file entry **MUST** contain:
 - `path`: project-relative forward-slashed source path
-- `totalExecutableLines`: integer greater than or equal to 0
+- `totalExecutableLines`: positive integer
 - `coveredLines`: deduplicated ascending list of 1-based executable line numbers covered by this test
+S011-IF-005.e `path` **MUST NOT** be absolute or contain parent-directory traversal.
+S011-IF-005.f The number of entries in `coveredLines` **MUST NOT** exceed `totalExecutableLines`.
 
 ### Normalizer Input Formats
 
