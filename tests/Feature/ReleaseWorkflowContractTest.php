@@ -38,6 +38,7 @@ it('gates publication on matching metadata and an exact public package smoke tes
         ->toContain('needs: build-assets')
         ->toContain('needs:')
         ->toContain('- packagist-smoke')
+        ->toContain('gh release edit "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft=false --latest')
         ->not->toContain('> VERSION');
 
     expect($smoke)
