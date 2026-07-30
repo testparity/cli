@@ -183,7 +183,20 @@ function createReleaseFixture(): string
 
     copy(base_path('dev/release-version.sh'), $root.'/dev/release-version.sh');
     copy(base_path('dev/verify-release-metadata.sh'), $root.'/dev/verify-release-metadata.sh');
-    copy(base_path('CHANGELOG.md'), $root.'/CHANGELOG.md');
+    file_put_contents($root.'/CHANGELOG.md', <<<'MARKDOWN'
+# Changelog
+
+## [Unreleased]
+
+### Added
+- `parity test` execution mode.
+
+## [1.1.1] - 2026-07-06
+
+### Changed
+- Previous release fixture.
+MARKDOWN
+        ."\n");
     file_put_contents($root.'/VERSION', "v1.1.1\n");
 
     runReleaseProcess($root, ['git', 'init', '--initial-branch=main'], false);

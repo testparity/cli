@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Release automation tests now use deterministic changelog fixtures and remain valid after a release empties the live `Unreleased` section.
+
 ## [1.2.0] - 2026-07-30
 
 ### Added
