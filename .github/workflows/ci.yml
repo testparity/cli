@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # Weekly run catches breakage from new dependency releases and advisories.
+    - cron: '17 6 * * 1'
 
 jobs:
   ci:
