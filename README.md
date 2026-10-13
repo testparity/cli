@@ -81,25 +81,25 @@ php parity.phar --version
 
 ## Samples
 
-Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo. Each sample installs the public Packagist package in GitHub Actions, runs `parity check`, and documents the same proof shape: global coverage can be 80% while the owning test only covers 40% of one file.
+Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo. Each sample installs the public Packagist package in GitHub Actions, runs its real test suite, and then runs `parity test` to generate fresh per-test coverage. No coverage result is committed. In every sample, global coverage passes while the belonging test of one file covers only 40–50% of it.
 
-| Sample | Language/framework | Test runner | Repository |
-|--------|--------------------|-------------|------------|
-| PHP | Plain PHP | Fixture coverage | https://github.com/testparity/php-sample |
-| Laravel | Laravel-style PHP | Fixture coverage | https://github.com/testparity/laravel-sample |
-| TypeScript | TypeScript utility | Fixture coverage | https://github.com/testparity/typescript-sample |
-| AdonisJS | AdonisJS-style TypeScript | Fixture coverage | https://github.com/testparity/adonisjs-sample |
-| Rust | Plain Rust | Fixture coverage | https://github.com/testparity/rust-sample |
-| Cargo | Cargo project | Cargo | https://github.com/testparity/cargo-sample |
-| PHPUnit | PHP | PHPUnit | https://github.com/testparity/phpunit-sample |
-| Pest | PHP | Pest | https://github.com/testparity/pest-sample |
-| Jest | JavaScript | Jest | https://github.com/testparity/jest-sample |
-| Mocha | JavaScript | Mocha + NYC | https://github.com/testparity/mocha-sample |
-| Vitest | TypeScript | Vitest | https://github.com/testparity/vitest-sample |
+| Sample | Test runner | All tests → belonging test only | Repository |
+|--------|-------------|--------------------------------:|------------|
+| PHP | PHPUnit | 80% → 40% | https://github.com/testparity/php-sample |
+| Laravel | PHPUnit | 80% → 40% | https://github.com/testparity/laravel-sample |
+| TypeScript | `node:test` + c8 | 80% → 44% | https://github.com/testparity/typescript-sample |
+| AdonisJS | Japa + c8 | 84% → 44% | https://github.com/testparity/adonisjs-sample |
+| Rust | `cargo llvm-cov` | 80% → 40% | https://github.com/testparity/rust-sample |
+| Cargo | `cargo llvm-cov` | 80% → 40% | https://github.com/testparity/cargo-sample |
+| PHPUnit | PHPUnit | 80% → 40% | https://github.com/testparity/phpunit-sample |
+| Pest | Pest | 80% → 40% | https://github.com/testparity/pest-sample |
+| Jest | Jest | 85.71% → 42.86% | https://github.com/testparity/jest-sample |
+| Mocha | Mocha + NYC | 85.71% → 42.86% | https://github.com/testparity/mocha-sample |
+| Vitest | Vitest | 100% → 50% | https://github.com/testparity/vitest-sample |
 
 See `docs/SAMPLES.md`, `docs/WHY-GLOBAL-COVERAGE-LIES.md`, and `docs/PARITY-COVERAGE-JSON.md`.
 
-The local `samples/` directory contains the original fixtures. Run them from this package root:
+The local `samples/` directory is separate: it holds committed coverage fixtures that the CLI test suite uses to exercise `parity check` without running a test runner. Run them from this package root:
 
 ```bash
 php parity check --config=samples/php/parity.yaml
@@ -316,4 +316,4 @@ CheckCommand (orchestrator)
 
 ## License
 
-MIT
+Parity is open-source software licensed under the [MIT license](LICENSE).

@@ -8,6 +8,7 @@
     ],
     "files": [
         "composer.json",
+        "LICENSE",
         "VERSION"
     ],
     "exclude-composer-files": false,
