@@ -182,8 +182,10 @@ class CoverageReader
             $covered = [];
             $lineNodes = $xpath->query('line', $file);
             foreach ($lineNodes as $lineNode) {
+                // Istanbul-based reporters (c8, nyc, Jest, Vitest V8) tag statement lines that contain a
+                // branch as "cond", so only PHPUnit's "method" signature lines are not executable.
                 $type = $lineNode->getAttribute('type');
-                if ($type !== '' && $type !== 'stmt') {
+                if ($type !== '' && $type !== 'stmt' && $type !== 'cond') {
                     continue;
                 }
 

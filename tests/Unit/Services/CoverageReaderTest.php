@@ -83,6 +83,31 @@ class CoverageReaderTest extends TestCase
         expect($coverage['src/Bar.rs'])->toBe(66.67);
     }
 
+    public function test_counts_istanbul_cond_lines_as_executable_and_skips_method_lines(): void
+    {
+        file_put_contents($this->tempDir.'/src/sum.ts', "export function sum() {}\n");
+        $path = $this->tempDir.'/src/sum.ts';
+        file_put_contents($this->tempDir.'/clover.xml', <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage>
+  <project>
+    <file name="{$path}">
+      <line num="1" count="1" type="cond" truecount="1" falsecount="0"/>
+      <line num="2" count="1" type="stmt"/>
+      <line num="3" count="0" type="stmt"/>
+      <line num="4" count="0" type="cond" truecount="0" falsecount="0"/>
+      <line num="5" count="1" type="method" name="sum"/>
+    </file>
+  </project>
+</coverage>
+XML);
+
+        $result = (new CoverageReader)->readExecutableLines($this->tempDir.'/clover.xml', $this->tempDir);
+
+        expect($result['totalExecutable']['src/sum.ts'])->toBe(4);
+        expect($result['coveredLines']['src/sum.ts'])->toBe([1, 2]);
+    }
+
     public function test_returns_empty_values_for_missing_or_invalid_clover_xml(): void
     {
         $reader = new CoverageReader;

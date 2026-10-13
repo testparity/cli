@@ -140,7 +140,7 @@ class TestCommand extends Command
                     }
 
                     if (! $process->isSuccessful()) {
-                        $this->error("Failed running test [{$relativeTest}]");
+                        $this->error("Failed running test [{$relativeTest}] (exit code {$process->getExitCode()})");
                         $stderr = trim($process->getErrorOutput());
                         $stdout = trim($process->getOutput());
                         if ($stderr !== '') {
@@ -148,6 +148,12 @@ class TestCommand extends Command
                         }
                         if ($stdout !== '') {
                             $this->line($stdout);
+                        }
+                        if ($stderr === '' && $stdout === '') {
+                            $this->line('The test command produced no output. Run it by hand to see why it failed.');
+                        }
+                        if (preg_match('/no code coverage driver/i', $stderr."\n".$stdout) === 1) {
+                            $this->line('Hint: install and enable a PHP coverage driver (Xdebug with XDEBUG_MODE=coverage, or PCOV), then run parity test again.');
                         }
 
                         return self::FAILURE;

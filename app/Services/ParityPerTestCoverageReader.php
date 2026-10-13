@@ -142,8 +142,9 @@ class ParityPerTestCoverageReader
 
         $allKeys = array_unique(array_merge(array_keys($lineCoverage), array_keys($totalExecutable)));
         foreach ($allKeys as $key) {
-            $covered = isset($lineCoverage[$key]) ? count($lineCoverage[$key]) : 0;
             $executable = $totalExecutable[$key] ?? 0;
+            // Reports from separate runs can disagree on which lines are executable; never exceed 100%.
+            $covered = min($executable, isset($lineCoverage[$key]) ? count($lineCoverage[$key]) : 0);
             $coverage[$key] = $executable > 0 ? round(100.0 * $covered / $executable, 2) : 100.0;
         }
 
@@ -173,8 +174,9 @@ class ParityPerTestCoverageReader
         $covered = 0;
         $executable = 0;
         foreach ($keys as $key) {
-            $covered += isset($lineCoverage[$key]) ? count($lineCoverage[$key]) : 0;
-            $executable += $totalExecutable[$key] ?? 0;
+            $fileExecutable = $totalExecutable[$key] ?? 0;
+            $covered += min($fileExecutable, isset($lineCoverage[$key]) ? count($lineCoverage[$key]) : 0);
+            $executable += $fileExecutable;
         }
 
         if ($executable === 0) {

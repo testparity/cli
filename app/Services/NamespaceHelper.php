@@ -123,6 +123,11 @@ class NamespaceHelper
         return trim($path, '/');
     }
 
+    public function getNamespaceSeparator(): string
+    {
+        return $this->namespaceSeparator;
+    }
+
     public function getSourceExtension(): string
     {
         return $this->sourceExtension;

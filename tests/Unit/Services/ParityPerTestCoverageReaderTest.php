@@ -71,6 +71,31 @@ class ParityPerTestCoverageReaderTest extends TestCase
         expect($result['globalPercent'])->toBe(75.0);
     }
 
+    public function test_never_reports_more_than_full_coverage_when_reports_disagree_on_executable_lines(): void
+    {
+        file_put_contents($this->tempDir.'/project/src/Foo.php', '<?php echo "foo";');
+        file_put_contents($this->tempDir.'/project/.parity/index.json', json_encode([
+            'version' => 1,
+            'kind' => 'parity-per-test-coverage',
+            'reports' => [
+                ['test' => 'Tests\\Unit\\FooTest', 'path' => 'reports/foo.json'],
+                ['test' => 'Tests\\Unit\\BarTest', 'path' => 'reports/bar.json'],
+            ],
+        ], JSON_PRETTY_PRINT));
+        foreach (['foo' => [1, 2, 3], 'bar' => [4, 5, 6]] as $name => $lines) {
+            file_put_contents($this->tempDir."/project/.parity/reports/{$name}.json", json_encode([
+                'version' => 1,
+                'test' => 'Tests\\Unit\\'.ucfirst($name).'Test',
+                'files' => [['path' => 'src/Foo.php', 'totalExecutableLines' => 4, 'coveredLines' => $lines]],
+            ], JSON_PRETTY_PRINT));
+        }
+
+        $result = (new ParityPerTestCoverageReader)->read($this->tempDir.'/project/.parity', $this->tempDir.'/project');
+
+        expect($result['coverage']['src/Foo.php'])->toBe(100.0);
+        expect($result['globalPercent'])->toBe(100.0);
+    }
+
     public function test_rejects_manifest_report_paths_outside_the_reports_directory(): void
     {
         file_put_contents($this->tempDir.'/project/outside.json', json_encode([

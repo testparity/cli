@@ -143,3 +143,51 @@ function removeTemporaryParityProject(string $path): void
 
     rmdir($path);
 }
+
+it('matches attributed tests to structures in non-PHP projects', function () {
+    $root = createTemporaryParityProject('unmatched-ts');
+    mkdir($root.'/src', 0777, true);
+    mkdir($root.'/tests', 0777, true);
+    file_put_contents($root.'/src/sum.ts', "export const sum = (a: number, b: number) => a + b\n");
+    file_put_contents($root.'/tests/sum.test.ts', "// sum test\n");
+    file_put_contents($root.'/parity-coverage.json', json_encode([
+        'version' => 1,
+        'globalPercent' => 100,
+        'files' => [[
+            'path' => 'src/sum.ts',
+            'coveragePercent' => 100,
+            'totalExecutableLines' => 1,
+            'lines' => [['line' => 1, 'coveredBy' => ['Tests.sum.test::adds', 'Tests.stray.test::orphan']]],
+        ]],
+    ]));
+    file_put_contents($root.'/parity.yaml', <<<'YAML'
+settings:
+  namespace_roots:
+    src: Src
+    tests: Tests
+  source_extension: ".ts"
+  test_suffix: ".test"
+  test_extension: ".ts"
+  namespace_separator: "."
+coverage_xml: parity-coverage.json
+structure:
+  - name: Source
+    paths:
+      source: src
+      test: tests
+    rules:
+      - matched-coverage
+YAML);
+
+    try {
+        Artisan::call('check', ['--config' => $root.'/parity.yaml']);
+        $output = (string) preg_replace('/\e\[[\d;]*m/', '', Artisan::output());
+
+        expect($output)->toContain('Tests that did not match any structure');
+        expect($output)->toContain('Tests.stray.test');
+        expect($output)->not->toContain('Tests.sum.test');
+        expect($output)->not->toContain('.php');
+    } finally {
+        removeTemporaryParityProject($root);
+    }
+});

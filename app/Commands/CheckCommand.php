@@ -572,39 +572,46 @@ class CheckCommand extends Command
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void
     {
-        $allTestNames = [];
-        foreach ($testsByFile as $list) {
-            foreach ($list as $name) {
-                $allTestNames[$name] = true;
-            }
-        }
-        $testPathsInCoverage = [];
-        foreach (array_keys($allTestNames) as $testName) {
-            $class = str_contains($testName, '::') ? explode('::', $testName, 2)[0] : $testName;
-            $path = $this->testClassToRelativePath($class);
-            if ($path !== '') {
-                $testPathsInCoverage[$path] = true;
-            }
-        }
-        $expectedNormalized = [];
+        // Compare in identifier space: per-test reports name tests with the configured separator
+        // (e.g. Tests.sum.test), so converting identifiers back to paths is lossy outside PHP.
+        $expectedIdentifiers = [];
+        $expectedShortNames = [];
         foreach (array_keys($expectedTestPaths) as $expected) {
-            $expectedNormalized[$namespaceHelper->normalizeRelativePath($expected)] = true;
+            $expectedIdentifiers[strtolower($namespaceHelper->pathToFqcn($expected))] = true;
+            $expectedShortNames[strtolower(pathinfo($expected, PATHINFO_FILENAME))] = true;
         }
+
         $unmatched = [];
-        foreach (array_keys($testPathsInCoverage) as $path) {
-            $normalized = $namespaceHelper->normalizeRelativePath($path);
-            if (! isset($expectedNormalized[$normalized])) {
-                $unmatched[] = $path;
+        foreach ($testsByFile as $list) {
+            foreach ($list as $testName) {
+                $class = str_contains($testName, '::') ? explode('::', $testName, 2)[0] : $testName;
+                if (str_starts_with($class, 'P\\')) {
+                    $class = substr($class, 2);
+                }
+                if ($class === '' || isset($unmatched[$class])) {
+                    continue;
+                }
+                $key = strtolower($class);
+                if (! isset($expectedIdentifiers[$key]) && ! isset($expectedShortNames[$key])) {
+                    $unmatched[$class] = true;
+                }
             }
         }
         if ($unmatched === []) {
             return;
         }
-        sort($unmatched);
+
+        $labels = array_map(
+            fn (string $class): string => $namespaceHelper->getNamespaceSeparator() === '\\'
+                ? $this->testClassToRelativePath($class)
+                : $class,
+            array_keys($unmatched),
+        );
+        sort($labels);
         $this->newLine();
         $this->warn('Tests that did not match any structure (e.g. wrong path/namespace):');
-        foreach ($unmatched as $path) {
-            $this->line('  <fg=yellow>'.$path.'</>');
+        foreach ($labels as $label) {
+            $this->line('  <fg=yellow>'.$label.'</>');
         }
     }
 

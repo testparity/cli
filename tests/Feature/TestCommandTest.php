@@ -325,3 +325,31 @@ file_put_contents($coveragePath, json_encode([
 ], JSON_PRETTY_PRINT));
 PHP;
 }
+
+it('explains how to fix a missing coverage driver', function () {
+    $root = createSingleTestProject("<?php\nfwrite(STDOUT, \"WARN  No code coverage driver available\\n\");\nexit(1);\n");
+
+    $exitCode = Artisan::call('test', [
+        '--config' => $root.'/parity.yaml',
+        '--no-check' => true,
+    ]);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1);
+    expect($output)->toContain('(exit code 1)');
+    expect($output)->toContain('No code coverage driver available');
+    expect($output)->toContain('Hint: install and enable a PHP coverage driver');
+});
+
+it('says when a failing test command printed nothing', function () {
+    $root = createSingleTestProject("<?php\nexit(3);\n");
+
+    $exitCode = Artisan::call('test', [
+        '--config' => $root.'/parity.yaml',
+        '--no-check' => true,
+    ]);
+
+    expect($exitCode)->toBe(1);
+    expect(Artisan::output())->toContain('(exit code 3)')
+        ->toContain('The test command produced no output');
+});
