@@ -26,17 +26,17 @@ Every sample has one weakly owned file and one strongly owned file. In the weak 
 | --- | --- | ---: | ---: | ---: |
 | PHP | `src/Calculator.php` | 80% | 40% | 85.71% |
 | Laravel | `app/Services/InvoiceTotal.php` | 80% | 40% | 85.71% |
-| TypeScript | `src/formatCurrency.ts` | 80% | 44% | 81.48% |
-| AdonisJS | `app/services/user_presenter.ts` | 84% | 44% | 85.19% |
+| TypeScript | `src/formatCurrency.ts` | 77.78% | 48.15% | 80.65% |
+| AdonisJS | `app/services/user_presenter.ts` | 77.78% | 48.15% | 80.65% |
 | Rust | `src/lib.rs` | 80% | 40% | 84.21% |
 | Cargo | `src/lib.rs` | 80% | 40% | 84.21% |
 | PHPUnit | `code/src/InvoiceCalculator.php` | 80% | 40% | 85.71% |
 | Pest | `code/src/Slugger.php` | 80% | 40% | 85.71% |
 | Jest | `code/src/sum.js` | 85.71% | 42.86% | 88.89% |
 | Mocha | `code/src/greeting.js` | 85.71% | 42.86% | 88.89% |
-| Vitest | `code/src/formatCurrency.ts` | 100% | 50% | 100% |
+| Vitest | `code/src/formatCurrency.ts` | 100% | 55.56% | 100% |
 
-The Vitest sample is the sharpest case: the project has 100% global coverage, but the belonging test still covers only half of `formatCurrency.ts`.
+The Vitest sample is the sharpest case: the project has 100% global coverage, but the belonging test still covers only 55.56% of `formatCurrency.ts`.
 
 Each sample README documents its exact source files, tests, and thresholds.
 

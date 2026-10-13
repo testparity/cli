@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Clover reports from Istanbul-based tools (c8, nyc, Jest, Vitest) now count statement lines that contain a branch (`type="cond"`). They were previously skipped, which understated executable lines and could push merged per-test coverage above 100%.
+- Merged per-test coverage is capped at 100% when reports from separate runs disagree on executable lines.
+- The "Tests that did not match any structure" warning no longer flags every test in projects that use a non-PHP namespace separator, and no longer appends `.php` to their names.
+- `parity test` now reports the runner's exit code, says when the runner printed nothing, and suggests installing Xdebug or PCOV when no coverage driver is available.
+
+### Security
+- Updated Guzzle to 7.15.5 and Flysystem to 3.36.0 to address CVE-2026-69245, CVE-2026-69246, and CVE-2026-102601.
+
+### Changed
+- The PHAR now bundles the MIT `LICENSE`.
+- `phpunit.xml.dist` no longer forces coverage reports, so `./vendor/bin/pest` runs without a coverage driver.
+- Added `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and a pull request template.
+
 ## [1.2.2] - 2026-07-30
 
 ### Fixed

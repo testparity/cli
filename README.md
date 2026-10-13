@@ -65,12 +65,18 @@ coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml,
 ```bash
 composer install
 ./vendor/bin/pint --test
-XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
-php parity check --format=json
+./vendor/bin/pest
 composer validate --strict
 ```
 
-This repository dogfoods Parity through the root `parity.yaml`. The self-check expects PHPUnit XML coverage in `coverage-xml/`, so generate coverage before running `php parity check`.
+This repository dogfoods Parity through the root `parity.yaml`. The self-check needs PHPUnit XML coverage in `coverage-xml/`, so install Xdebug or PCOV and generate it first:
+
+```bash
+XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
+php parity check --format=json
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Build the PHAR manually with:
 
@@ -81,21 +87,21 @@ php parity.phar --version
 
 ## Samples
 
-Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo. Each sample installs the public Packagist package in GitHub Actions, runs its real test suite, and then runs `parity test` to generate fresh per-test coverage. No coverage result is committed. In every sample, global coverage passes while the belonging test of one file covers only 40–50% of it.
+Public sample repositories demonstrate Parity across PHP, Laravel, TypeScript, AdonisJS, Rust, PHPUnit, Pest, Jest, Mocha, Vitest, and Cargo. Each sample installs the public Packagist package in GitHub Actions, runs its real test suite, and then runs `parity test` to generate fresh per-test coverage. No coverage result is committed. In every sample, global coverage passes while the belonging test of one file covers only about 40–56% of it.
 
 | Sample | Test runner | All tests → belonging test only | Repository |
 |--------|-------------|--------------------------------:|------------|
 | PHP | PHPUnit | 80% → 40% | https://github.com/testparity/php-sample |
 | Laravel | PHPUnit | 80% → 40% | https://github.com/testparity/laravel-sample |
-| TypeScript | `node:test` + c8 | 80% → 44% | https://github.com/testparity/typescript-sample |
-| AdonisJS | Japa + c8 | 84% → 44% | https://github.com/testparity/adonisjs-sample |
+| TypeScript | `node:test` + c8 | 77.78% → 48.15% | https://github.com/testparity/typescript-sample |
+| AdonisJS | Japa + c8 | 77.78% → 48.15% | https://github.com/testparity/adonisjs-sample |
 | Rust | `cargo llvm-cov` | 80% → 40% | https://github.com/testparity/rust-sample |
 | Cargo | `cargo llvm-cov` | 80% → 40% | https://github.com/testparity/cargo-sample |
 | PHPUnit | PHPUnit | 80% → 40% | https://github.com/testparity/phpunit-sample |
 | Pest | Pest | 80% → 40% | https://github.com/testparity/pest-sample |
 | Jest | Jest | 85.71% → 42.86% | https://github.com/testparity/jest-sample |
 | Mocha | Mocha + NYC | 85.71% → 42.86% | https://github.com/testparity/mocha-sample |
-| Vitest | Vitest | 100% → 50% | https://github.com/testparity/vitest-sample |
+| Vitest | Vitest | 100% → 55.56% | https://github.com/testparity/vitest-sample |
 
 See `docs/SAMPLES.md`, `docs/WHY-GLOBAL-COVERAGE-LIES.md`, and `docs/PARITY-COVERAGE-JSON.md`.
 

@@ -17,10 +17,4 @@
             <directory>./app</directory>
         </include>
     </source>
-    <coverage>
-        <report>
-            <xml outputDirectory="coverage-xml"/>
-            <clover outputFile="coverage.xml"/>
-        </report>
-    </coverage>
 </phpunit>
