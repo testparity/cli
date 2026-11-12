@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `parity pr` reports associated, unrelated-only, and uncovered executable lines changed against a Git base ref.
+- A reusable TestParity coding-agent skill for diagnosing and closing changed-line coverage gaps.
+
 ### Fixed
 - Clover reports from Istanbul-based tools (c8, nyc, Jest, Vitest) now count statement lines that contain a branch (`type="cond"`). They were previously skipped, which understated executable lines and could push merged per-test coverage above 100%.
 - Merged per-test coverage is capped at 100% when reports from separate runs disagree on executable lines.

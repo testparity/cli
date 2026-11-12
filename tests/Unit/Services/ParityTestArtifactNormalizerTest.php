@@ -67,7 +67,8 @@ final class ParityTestArtifactNormalizerTest extends TestCase
   <project>
     <file name="{$sourcePath}">
       <line num="2" type="stmt" count="1"/>
-      <metrics statements="1" coveredstatements="1"/>
+      <line num="3" type="stmt" count="0"/>
+      <metrics statements="2" coveredstatements="1"/>
     </file>
   </project>
 </coverage>
@@ -78,8 +79,9 @@ XML);
             $this->assertSame([
                 [
                     'path' => 'src/Foo.php',
-                    'totalExecutableLines' => 1,
+                    'totalExecutableLines' => 2,
                     'coveredLines' => [2],
+                    'executableLines' => [2, 3],
                 ],
             ], $report['files']);
         } finally {

@@ -15,7 +15,7 @@ class ParityTestArtifactNormalizer
      * @return array{
      *     version: int,
      *     test: string,
-     *     files: list<array{path: string, totalExecutableLines: int, coveredLines: list<int>}>
+     *     files: list<array{path: string, totalExecutableLines: int, coveredLines: list<int>, executableLines?: list<int>}>
      * }
      */
     public function normalize(string $coveragePath, string $testName, string $projectRoot): array
@@ -24,14 +24,14 @@ class ParityTestArtifactNormalizer
             $reader = new PhpUnitXmlCoverageReader;
             $result = $reader->read($coveragePath, $projectRoot);
 
-            return $this->buildReport($result['lineCoverage'] ?? [], $result['totalExecutable'] ?? [], $testName, $projectRoot);
+            return $this->buildReport($result['lineCoverage'] ?? [], $result['totalExecutable'] ?? [], $result['executableLines'] ?? [], $testName, $projectRoot);
         }
 
         if (is_file($coveragePath) && strtolower(pathinfo($coveragePath, PATHINFO_EXTENSION)) === 'json') {
             $reader = new ParityJsonCoverageReader;
             $result = $reader->read($coveragePath, $projectRoot);
 
-            return $this->buildReport($result['lineCoverage'] ?? [], $result['totalExecutable'] ?? [], $testName, $projectRoot);
+            return $this->buildReport($result['lineCoverage'] ?? [], $result['totalExecutable'] ?? [], $result['executableLines'] ?? [], $testName, $projectRoot);
         }
 
         $reader = new CoverageReader;
@@ -43,19 +43,20 @@ class ParityTestArtifactNormalizer
             }
         }
 
-        return $this->buildReport($lineCoverage, $result['totalExecutable'] ?? [], $testName, $projectRoot);
+        return $this->buildReport($lineCoverage, $result['totalExecutable'] ?? [], $result['executableLines'] ?? [], $testName, $projectRoot);
     }
 
     /**
      * @param  array<string, array<int, list<string>>>  $lineCoverage
      * @param  array<string, int>  $totalExecutable
+     * @param  array<string, list<int>>  $executableByPath
      * @return array{
      *     version: int,
      *     test: string,
-     *     files: list<array{path: string, totalExecutableLines: int, coveredLines: list<int>}>
+     *     files: list<array{path: string, totalExecutableLines: int, coveredLines: list<int>, executableLines?: list<int>}>
      * }
      */
-    private function buildReport(array $lineCoverage, array $totalExecutable, string $testName, string $projectRoot): array
+    private function buildReport(array $lineCoverage, array $totalExecutable, array $executableByPath, string $testName, string $projectRoot): array
     {
         $filesByPath = [];
         $root = str_replace('\\', '/', $projectRoot);
@@ -74,7 +75,7 @@ class ParityTestArtifactNormalizer
             }
 
             $executable = max(0, (int) ($totalExecutable[$path] ?? 0));
-            if ($executable === 0) {
+            if ($executable === 0 && ! array_key_exists($path, $executableByPath)) {
                 continue;
             }
 
@@ -97,6 +98,15 @@ class ParityTestArtifactNormalizer
                 $coveredLines
             )));
             sort($filesByPath[$relativePath]['coveredLines']);
+
+            if (isset($executableByPath[$path])) {
+                $lines = array_values(array_unique(array_merge(
+                    $filesByPath[$relativePath]['executableLines'] ?? [],
+                    $executableByPath[$path]
+                )));
+                sort($lines);
+                $filesByPath[$relativePath]['executableLines'] = $lines;
+            }
         }
 
         ksort($filesByPath);

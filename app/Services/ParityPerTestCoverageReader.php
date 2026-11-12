@@ -17,6 +17,9 @@ class ParityPerTestCoverageReader
      *     testsByFile: array<string, list<string>>,
      *     lineCoverage: array<string, array<int, list<string>>>,
      *     totalExecutable: array<string, int>,
+     *     executableLines?: array<string, list<int>>,
+     *     reportedTests?: list<string>,
+     *     complete?: bool,
      *     globalPercent: float|null
      * }
      */
@@ -45,6 +48,10 @@ class ParityPerTestCoverageReader
         $testsByFile = [];
         $lineCoverage = [];
         $totalExecutable = [];
+        $executableByPath = [];
+        $incompletePaths = [];
+        $reportedTests = [];
+        $validReports = 0;
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
         $baseRoot = realpath($dirPath);
         $reportsConfiguredPath = rtrim($dirPath, '/\\').'/reports';
@@ -96,6 +103,8 @@ class ParityPerTestCoverageReader
                 continue;
             }
 
+            $validReports++;
+            $reportedTests[$testName] = true;
             foreach ($report['files'] as $file) {
                 if (! is_array($file) || ! isset($file['path']) || ! is_string($file['path'])) {
                     continue;
@@ -114,16 +123,30 @@ class ParityPerTestCoverageReader
                 $executable = isset($file['totalExecutableLines']) && is_numeric($file['totalExecutableLines'])
                     ? max(0, (int) $file['totalExecutableLines'])
                     : 0;
-                if ($executable === 0 || count($coveredLines) > $executable) {
-                    continue;
-                }
-
                 $keys = [$relativePath];
                 if ($root !== null) {
                     $keys[] = $this->normalizePath($root.'/'.$relativePath);
                 }
 
+                $lines = $file['executableLines'] ?? null;
+                $hasCompleteLineList = is_array($lines)
+                    && count($lines) === $executable
+                    && count(array_filter($lines, fn ($line): bool => is_int($line) && $line > 0)) === $executable
+                    && count(array_unique($lines)) === $executable
+                    && array_diff($coveredLines, $lines) === [];
+
                 foreach ($keys as $key) {
+                    if ($hasCompleteLineList) {
+                        $executableByPath[$key] ??= [];
+                        foreach ($lines as $line) {
+                            $executableByPath[$key][$line] = true;
+                        }
+                    } else {
+                        $incompletePaths[$key] = true;
+                    }
+                    if ($executable === 0 || count($coveredLines) > $executable) {
+                        continue;
+                    }
                     $totalExecutable[$key] = max($totalExecutable[$key] ?? 0, $executable);
                     $testsByFile[$key] ??= [];
                     if ($coveredLines !== [] && ! in_array($testName, $testsByFile[$key], true)) {
@@ -155,6 +178,12 @@ class ParityPerTestCoverageReader
             'testsByFile' => $testsByFile,
             'lineCoverage' => $lineCoverage,
             'totalExecutable' => $totalExecutable,
+            'executableLines' => array_map(
+                'array_keys',
+                array_diff_key($executableByPath, $incompletePaths)
+            ),
+            'reportedTests' => array_keys($reportedTests),
+            'complete' => $validReports > 0 && $validReports === count($index['reports']),
             'globalPercent' => $globalPercent,
         ];
     }
