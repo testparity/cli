@@ -60,6 +60,10 @@ coverage_xml: [.parity/per-test, parity-coverage.json, coverage-xml, clover.xml,
 | Clover XML | PHP, JavaScript, TypeScript, and common coverage tools | No |
 | Cobertura XML | Rust, Python, Go, JavaScript, TypeScript, JVM, and CI coverage tools | No |
 
+## Changed-line coverage
+
+Run `parity test --no-check` to generate fresh attribution, then `parity pr --base=origin/main` to report coverage of changed executable lines. Add `--format=json` for CI and coding agents. The [TestParity skill](skills/testparity/SKILL.md) walks an agent through improving the associated tests and rerunning the report.
+
 ## Development
 
 ```bash

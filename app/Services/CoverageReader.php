@@ -143,18 +143,19 @@ class CoverageReader
      *
      * @return array{
      *     coveredLines: array<string, list<int>>,
-     *     totalExecutable: array<string, int>
+     *     totalExecutable: array<string, int>,
+     *     executableLines: array<string, list<int>>
      * }
      */
     public function readExecutableLines(string $coverageXmlPath, ?string $projectRoot = null): array
     {
         if (! is_file($coverageXmlPath)) {
-            return ['coveredLines' => [], 'totalExecutable' => []];
+            return ['coveredLines' => [], 'totalExecutable' => [], 'executableLines' => []];
         }
 
         $content = @file_get_contents($coverageXmlPath);
         if ($content === false) {
-            return ['coveredLines' => [], 'totalExecutable' => []];
+            return ['coveredLines' => [], 'totalExecutable' => [], 'executableLines' => []];
         }
 
         $doc = new DOMDocument;
@@ -163,12 +164,13 @@ class CoverageReader
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
         if (! $loaded) {
-            return ['coveredLines' => [], 'totalExecutable' => []];
+            return ['coveredLines' => [], 'totalExecutable' => [], 'executableLines' => []];
         }
 
         $xpath = new DOMXPath($doc);
         $coveredLines = [];
         $totalExecutable = [];
+        $executableByPath = [];
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
 
         $files = $xpath->query('//file[@name]');
@@ -201,7 +203,7 @@ class CoverageReader
                 }
             }
 
-            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $name, array_keys($covered), count($executableLines), $root);
+            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $executableByPath, $name, array_keys($covered), array_keys($executableLines), $root);
         }
 
         $classes = $xpath->query('//class[@filename]');
@@ -227,10 +229,10 @@ class CoverageReader
                 }
             }
 
-            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $filename, array_keys($covered), count($executableLines), $root);
+            $this->storeExecutableCoverage($coveredLines, $totalExecutable, $executableByPath, $filename, array_keys($covered), array_keys($executableLines), $root);
         }
 
-        return ['coveredLines' => $coveredLines, 'totalExecutable' => $totalExecutable];
+        return ['coveredLines' => $coveredLines, 'totalExecutable' => $totalExecutable, 'executableLines' => $executableByPath];
     }
 
     private function readCoberturaLinePercent(DOMXPath $xpath, \DOMNode $class): float
@@ -253,9 +255,11 @@ class CoverageReader
     /**
      * @param  array<string, list<int>>  $coveredLines
      * @param  array<string, int>  $totalExecutable
+     * @param  array<string, list<int>>  $executableByPath
      * @param  list<int>  $covered
+     * @param  list<int>  $executable
      */
-    private function storeExecutableCoverage(array &$coveredLines, array &$totalExecutable, string $path, array $covered, int $executable, ?string $root): void
+    private function storeExecutableCoverage(array &$coveredLines, array &$totalExecutable, array &$executableByPath, string $path, array $covered, array $executable, ?string $root): void
     {
         $normalized = $this->normalizePath($path);
         $keys = [$normalized];
@@ -270,10 +274,13 @@ class CoverageReader
             }
         }
 
-        sort($covered);
-        foreach ($keys as $key) {
-            $coveredLines[$key] = $covered;
-            $totalExecutable[$key] = $executable;
+        foreach (array_unique($keys) as $key) {
+            $coveredLines[$key] = array_values(array_unique(array_merge($coveredLines[$key] ?? [], $covered)));
+            sort($coveredLines[$key]);
+
+            $executableByPath[$key] = array_values(array_unique(array_merge($executableByPath[$key] ?? [], $executable)));
+            sort($executableByPath[$key]);
+            $totalExecutable[$key] = count($executableByPath[$key]);
         }
     }
 

@@ -17,6 +17,7 @@ class ParityJsonCoverageReader
      *     testsByFile: array<string, list<string>>,
      *     lineCoverage: array<string, array<int, list<string>>>,
      *     totalExecutable: array<string, int>,
+     *     executableLines?: array<string, list<int>>,
      *     globalPercent: float|null
      * }
      */
@@ -42,6 +43,7 @@ class ParityJsonCoverageReader
         $testsByFile = [];
         $lineCoverage = [];
         $totalExecutable = [];
+        $executableByPath = [];
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
 
         foreach (($data['files'] ?? []) as $file) {
@@ -63,6 +65,19 @@ class ParityJsonCoverageReader
             $this->store($testsByFile, $relativePath, $tests, $root);
             $this->store($lineCoverage, $relativePath, $perLine, $root);
             $this->store($totalExecutable, $relativePath, $executable, $root);
+
+            $lines = $file['lines'] ?? null;
+            if (is_array($lines)) {
+                $numbers = [];
+                foreach ($lines as $line) {
+                    if (is_array($line) && is_int($line['line'] ?? null) && $line['line'] > 0) {
+                        $numbers[$line['line']] = true;
+                    }
+                }
+                if (count($numbers) === count($lines) && count($numbers) === $executable) {
+                    $this->store($executableByPath, $relativePath, array_keys($numbers), $root);
+                }
+            }
         }
 
         return [
@@ -70,6 +85,7 @@ class ParityJsonCoverageReader
             'testsByFile' => $testsByFile,
             'lineCoverage' => $lineCoverage,
             'totalExecutable' => $totalExecutable,
+            'executableLines' => $executableByPath,
             'globalPercent' => isset($data['globalPercent']) && is_numeric($data['globalPercent']) ? (float) $data['globalPercent'] : null,
         ];
     }
