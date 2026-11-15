@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-15
+
+### Fixed
+- Coverage reports no longer infer missing tests for PHP interface declarations with no coverage evidence.
+
 ## [1.4.0] - 2026-11-15
 
 ### Added
