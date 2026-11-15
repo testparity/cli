@@ -106,6 +106,22 @@ YAML);
     expect($output['structures'][0]['files'][0]['rules'])->toHaveKey('coverage-attribution');
     expect(file_get_contents($root.'/parity.test.yaml'))->toBe("user-owned\n");
     expect(glob($root.'/.parity-test-*'))->toBe([]);
+
+    file_put_contents($root.'/suite.xml', <<<'XML'
+<coverage><project><file name="src/Foo.php">
+    <line num="1" type="stmt" count="1"/>
+    <line num="2" type="stmt" count="1"/>
+</file></project></coverage>
+XML);
+    expect(Artisan::call('test', [
+        '--config' => $root.'/parity.yaml',
+        '--format' => 'json',
+        '--suite-coverage' => 'suite.xml',
+    ]))->toBe(0);
+    $report = json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR);
+    $files = array_column($report['structures'][0]['files'], 'comparison', 'source');
+    expect($files['src/Foo.php']['suite'])->toBe(100);
+    expect($files['src/Bar.php'])->toBe(['suite' => null, 'associated' => null, 'gap' => null]);
 });
 
 it('fails when a successful runner does not produce usable coverage', function () {

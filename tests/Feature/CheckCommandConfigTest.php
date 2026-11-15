@@ -212,7 +212,7 @@ YAML);
     }
 });
 
-it('compares full-suite and exact associated-test line coverage in GitHub output', function () {
+it('compares full-suite and exact associated-test line coverage in GitHub and opt-in JSON output', function () {
     $root = createTemporaryParityProject('suite-comparison');
     mkdir($root.'/src');
     mkdir($root.'/tests');
@@ -264,9 +264,24 @@ YAML);
             ->toContain('| Full suite | Associated test only | Gap |')
             ->toContain('| 66.67% | 33.33% | 33.33 pp |');
 
+        $legacyArguments = ['--config' => $root.'/parity.yaml', '--format' => 'json'];
+        Artisan::call('check', $legacyArguments);
+        $legacy = json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR);
+        expect($legacy['structures'][0]['files'][0])->not->toHaveKey('comparison');
+
+        $jsonArguments = $legacyArguments + ['--suite-coverage' => 'suite.xml'];
+        Artisan::call('check', $jsonArguments);
+        $expected = $legacy;
+        $expected['structures'][0]['files'][0]['comparison'] = ['suite' => 66.67, 'associated' => 33.33, 'gap' => 33.33];
+        expect(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR))->toBe($expected);
+
         file_put_contents($root.'/per-test/reports/foo.json', $report($test, [1], [1, 2, 4]));
         Artisan::call('check', $arguments);
         expect(Artisan::output())->toContain('| 66.67% | — | — |');
+        Artisan::call('check', $jsonArguments);
+        $json = json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR);
+        expect($json['structures'][0]['files'][0]['comparison'])
+            ->toBe(['suite' => 66.67, 'associated' => null, 'gap' => null]);
 
         file_put_contents($root.'/per-test/reports/foo.json', $report($test, []));
         Artisan::call('check', $arguments);

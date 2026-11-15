@@ -33,7 +33,7 @@ class CheckCommand extends Command
     protected $signature = 'check
         {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON, Parity per-test reports, or PHPUnit XML; default is count only)}
         {--format=table : Output format: table (default), json, or github}
-        {--suite-coverage= : Full-suite Clover XML for comparison in GitHub output}
+        {--suite-coverage= : Full-suite Clover XML for comparison in JSON or GitHub output}
         {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
     protected $description = 'Check structural parity and code coverage per file using pluggable rules; does not run tests';
@@ -76,8 +76,8 @@ class CheckCommand extends Command
 
         $suiteCoverage = null;
         if ($this->option('suite-coverage') !== null) {
-            if ($format !== 'github') {
-                $this->error('--suite-coverage requires --format=github.');
+            if ($isTable) {
+                $this->error('--suite-coverage requires --format=json or --format=github.');
 
                 return self::FAILURE;
             }
@@ -117,7 +117,7 @@ class CheckCommand extends Command
 
         // ── Structures ─────────────────────────────────────────────
         $structures = $config['structure'] ?? [];
-        if ($structures === []) {
+        if ($structures === [] && ! ($format === 'json' && $suiteCoverage !== null)) {
             $this->warn('No structure entries in parity.yaml.');
 
             return self::SUCCESS;
@@ -157,7 +157,7 @@ class CheckCommand extends Command
 
             $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
-                if ($format === 'github') {
+                if ($format === 'github' || $suiteCoverage !== null) {
                     $this->error("Source path does not exist: {$sourcePath}");
 
                     return self::FAILURE;
@@ -292,16 +292,16 @@ class CheckCommand extends Command
                 }
                 if ($format === 'github') {
                     $jsonFileEntry['coverage'] = $coveragePercent;
-                    if ($suiteCoverage !== null) {
-                        $testIdentifier = $namespaceHelper->pathToFqcn($expectedTestRelative);
-                        $jsonFileEntry['comparison'] = $suiteCoverage->compare(
-                            $normalizedSource,
-                            $fullSourceRelative,
-                            $testIdentifier,
-                            $testExists ? ($coverageData['lineSignaturesByTest'][$testIdentifier][$fullSourceRelative] ?? null) : null,
-                            $perLine,
-                        );
-                    }
+                }
+                if ($suiteCoverage !== null) {
+                    $testIdentifier = $namespaceHelper->pathToFqcn($expectedTestRelative);
+                    $jsonFileEntry['comparison'] = $suiteCoverage->compare(
+                        $normalizedSource,
+                        $fullSourceRelative,
+                        $testIdentifier,
+                        $testExists ? ($coverageData['lineSignaturesByTest'][$testIdentifier][$fullSourceRelative] ?? null) : null,
+                        $perLine,
+                    );
                 }
                 $jsonStructureFiles[] = $jsonFileEntry;
             }
@@ -335,7 +335,13 @@ class CheckCommand extends Command
         }
 
         if ($format === 'json') {
-            $this->line(json_encode($jsonReport, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $json = json_encode($jsonReport, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if ($json === false) {
+                $this->error('Could not encode the JSON report: '.json_last_error_msg());
+
+                return self::FAILURE;
+            }
+            $this->output->writeln($json, OutputInterface::OUTPUT_RAW);
 
             return $hasFailure ? self::FAILURE : self::SUCCESS;
         }
