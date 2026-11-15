@@ -279,3 +279,65 @@ YAML);
         removeTemporaryParityProject($root);
     }
 });
+
+it('omits interface-only files without inferred tests and still checks mapped or executable files', function () {
+    $root = createTemporaryParityProject('interface-declarations');
+    mkdir($root.'/src');
+    mkdir($root.'/tests');
+    file_put_contents($root.'/src/Unmapped.php', '<?php namespace App; interface Unmapped {}');
+    file_put_contents($root.'/src/Mapped.php', '<?php namespace App; interface Mapped {}');
+    file_put_contents($root.'/src/Observed.php', '<?php namespace App; interface Observed {}');
+    file_put_contents($root.'/src/Implementation.php', '<?php namespace App; interface Client {} class Implementation implements Client {}');
+    file_put_contents($root.'/clover.xml', <<<'XML'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <coverage>
+          <project>
+            <file name="src/Observed.php">
+              <line num="1" type="stmt" count="0"/>
+              <metrics statements="1" coveredstatements="0"/>
+            </file>
+            <metrics files="1" statements="1" coveredstatements="0"/>
+          </project>
+        </coverage>
+        XML);
+    file_put_contents($root.'/parity.yaml', <<<'YAML'
+        coverage_xml: clover.xml
+        structure:
+          - name: Source
+            paths:
+              source: src
+              test: tests
+            file_map:
+              Mapped.php: ContractTest.php
+        YAML);
+
+    try {
+        $options = ['--config' => $root.'/parity.yaml', '--format' => 'github'];
+
+        expect(Artisan::call('check', $options))->toBe(1);
+        expect(Artisan::output())
+            ->toContain(
+                '**Failed**',
+                '<code>tests/ContractTest.php</code>',
+                '<code>tests/ImplementationTest.php</code>',
+                '<code>tests/ObservedTest.php</code>',
+                '<code>test-exists</code>',
+            )
+            ->not->toContain('Unmapped.php');
+
+        file_put_contents($root.'/tests/ContractTest.php', '<?php');
+        file_put_contents($root.'/tests/ImplementationTest.php', '<?php');
+
+        rename($root.'/clover.xml', $root.'/suite.xml');
+        file_put_contents($root.'/clover.xml', '<coverage><project/></coverage>');
+        expect(Artisan::call('check', $options + ['--suite-coverage' => $root.'/suite.xml']))->toBe(1);
+        expect(Artisan::output())->toContain('<code>tests/ObservedTest.php</code>', '<code>test-exists</code>');
+
+        file_put_contents($root.'/tests/ObservedTest.php', '<?php');
+
+        expect(Artisan::call('check', $options))->toBe(0);
+        expect(Artisan::output())->toContain('**Passed**')->not->toContain('Unmapped.php');
+    } finally {
+        removeTemporaryParityProject($root);
+    }
+});

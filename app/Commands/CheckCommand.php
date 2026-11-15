@@ -14,6 +14,7 @@ use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
 use App\Services\ParityJsonCoverageReader;
 use App\Services\ParityPerTestCoverageReader;
+use App\Services\PhpInterfaceDeclarations;
 use App\Services\PhpUnitXmlCoverageReader;
 use App\Services\PluginLoader;
 use App\Services\SuiteCoverageComparison;
@@ -197,9 +198,17 @@ class CheckCommand extends Command
                 $coveragePercent = $coverageMap[$normalizedSource] ?? $coverageMap[$fullSourceRelative] ?? 0.0;
                 $coveringTests = $testsByFile[$normalizedSource] ?? $testsByFile[$fullSourceRelative] ?? [];
 
-                $expectedTestClass = pathinfo($expectedTestRelative, PATHINFO_FILENAME);
                 $perLine = $lineCoverage[$normalizedSource] ?? $lineCoverage[$fullSourceRelative] ?? [];
                 $executable = $totalExecutable[$normalizedSource] ?? $totalExecutable[$fullSourceRelative] ?? 0;
+
+                if (! $testExists && $mappedTest === null && $executable === 0
+                    && ! $suiteCoverage?->hasExecutableLines($normalizedSource, $fullSourceRelative)
+                    && strtolower($file->getExtension()) === 'php'
+                    && PhpInterfaceDeclarations::isOnlyInterfaces($sourceAbsolute)) {
+                    continue;
+                }
+
+                $expectedTestClass = pathinfo($expectedTestRelative, PATHINFO_FILENAME);
 
                 // Build rule context with all available data
                 $context = new RuleContext(
