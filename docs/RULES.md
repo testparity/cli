@@ -6,7 +6,7 @@ For parameter validation, table columns, JSON rule output, and linker behavior, 
 
 | Rule | Enforced | Purpose |
 |------|----------|---------|
-| `test-exists` | Yes | Confirms the expected test file exists for each source file. |
+| `test-exists` | Yes | Confirms the expected test file exists for each source file. PHP interface-only files without executable coverage lines are exempt from inferred test requirements. Explicit mappings still apply. |
 | `enforce-coverage-link` | Yes | Confirms tests declare the source they cover through supported linkers. |
 | `minimum-coverage` | Yes | Confirms all-test per-file coverage meets the configured threshold. |
 | `matched-coverage` | Yes when configured with `min` | Confirms the matching test file covers enough executable lines. |

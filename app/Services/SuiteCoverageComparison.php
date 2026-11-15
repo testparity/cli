@@ -18,6 +18,11 @@ final class SuiteCoverageComparison
         }
     }
 
+    public function hasExecutableLines(string $absolutePath, string $relativePath): bool
+    {
+        return $this->executableLines($absolutePath, $relativePath) !== [];
+    }
+
     /** @param list<int> $lines */
     public static function lineSignature(array $lines): string
     {
@@ -29,7 +34,7 @@ final class SuiteCoverageComparison
     /** @return array{suite: ?float, associated: ?float, gap: ?float} */
     public function compare(string $absolutePath, string $relativePath, string $testIdentifier, ?string $testLineSignature, array $testCoverage): array
     {
-        $executable = $this->suite['executableLines'][$absolutePath] ?? $this->suite['executableLines'][$relativePath] ?? [];
+        $executable = $this->executableLines($absolutePath, $relativePath);
         $total = count($executable);
         $result = ['suite' => null, 'associated' => null, 'gap' => null];
         if ($total === 0) {
@@ -52,5 +57,11 @@ final class SuiteCoverageComparison
         $result['gap'] = round(100 * (count($suiteCovered) - count($associated)) / $total, 2);
 
         return $result;
+    }
+
+    /** @return list<int> */
+    private function executableLines(string $absolutePath, string $relativePath): array
+    {
+        return $this->suite['executableLines'][$absolutePath] ?? $this->suite['executableLines'][$relativePath] ?? [];
     }
 }
