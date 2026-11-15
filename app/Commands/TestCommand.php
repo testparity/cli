@@ -23,7 +23,7 @@ class TestCommand extends Command
 {
     protected $signature = 'test
         {--config= : Path to parity.yaml (default: ./parity.yaml)}
-        {--format=table : Output format passed to parity check: table (default) or json}
+        {--format=table : Output format passed to parity check: table (default), json, or github}
         {--output= : Directory for parity per-test reports (default: test.reports or .parity/per-test)}
         {--timeout= : Maximum seconds for each test process (default: test.timeout or 300)}
         {--show-tests : Forward --show-tests to parity check}
