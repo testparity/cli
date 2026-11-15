@@ -1,0 +1,73 @@
+name: Post TestParity coverage
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+      report-path:
+        required: true
+        type: string
+
+jobs:
+  comment:
+    if: >-
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    concurrency:
+      group: testparity-comment-${{ github.event.pull_request.number }}-${{ inputs.artifact-name }}
+      cancel-in-progress: true
+    steps:
+      - name: Download the coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: coverage-artifact
+
+      - name: Create or update the coverage comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPORT_PATH: ${{ inputs.report-path }}
+        run: |
+          report="coverage-artifact/$REPORT_PATH"
+          if [[ ! -f "$report" ]] || [[ "$(head -n 1 "$report")" != '## TestParity coverage' ]]; then
+            echo 'Expected a TestParity Markdown report.'
+            exit 1
+          fi
+
+          pull="repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER"
+          if [[ "$(gh api "$pull" --jq '.head.sha')" != "$HEAD_SHA" ]]; then
+            echo 'Newer commits exist on the pull request.'
+            exit 0
+          fi
+
+          marker='<!-- testparity-coverage -->'
+          {
+            printf '%s\n' "$marker"
+            cat "$report"
+            printf '\n[Download coverage artifacts](%s#artifacts).\n' "$RUN_URL"
+          } > comment.md
+          if (( $(wc -c < comment.md) > 65000 )); then
+            {
+              printf '%s\n## TestParity coverage\n\n' "$marker"
+              printf 'The report exceeds the GitHub comment size limit. [Download the full report](%s#artifacts).\n' "$RUN_URL"
+            } > comment.md
+          fi
+
+          endpoint="repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"
+          comment_id=$(gh api --paginate "$endpoint" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- testparity-coverage -->"))) | .id' | tail -n 1)
+          if [[ -n "$comment_id" ]]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F body=@comment.md --silent
+          else
+            gh api --method POST "$endpoint" -F body=@comment.md --silent
+          fi

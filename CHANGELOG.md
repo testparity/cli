@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- GitHub Markdown coverage reports and a reusable workflow to post or update them on pull requests.
 - `parity pr` reports associated, unrelated-only, and uncovered executable lines changed against a Git base ref.
 - A reusable TestParity coding-agent skill for diagnosing and closing changed-line coverage gaps.
 
