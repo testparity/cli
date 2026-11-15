@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-15
+
 ### Added
 - GitHub Markdown coverage reports and a reusable workflow to post or update them on pull requests.
 - `parity pr` reports associated, unrelated-only, and uncovered executable lines changed against a Git base ref.
