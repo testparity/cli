@@ -7,6 +7,7 @@ use Symfony\Component\Yaml\Yaml;
 it('keeps every GitHub workflow valid YAML', function () {
     $paths = [
         base_path('.github/workflows/ci.yml'),
+        base_path('.github/workflows/parity-comment.yml'),
         base_path('.github/workflows/release.yml'),
         base_path('.github/workflows/release-smoke.yml'),
     ];
@@ -22,7 +23,9 @@ it('preserves branch validation and attributable Parity result artifacts', funct
     expect($workflow)
         ->toContain("- '**'")
         ->toContain('workflow_dispatch:')
-        ->toContain('php parity check --format=json | tee parity-results.json')
+        ->toContain('php parity check --format=json > parity-results.json')
+        ->toContain('php parity check --format=github > parity-comment.md')
+        ->toContain('uses: ./.github/workflows/parity-comment.yml')
         ->toContain("if: \${{ always() && hashFiles('parity-results.json') != '' }}")
         ->toContain('uses: actions/upload-artifact@v4')
         ->toContain('retention-days: 30');

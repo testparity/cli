@@ -11,10 +11,15 @@ on:
     # Weekly run catches breakage from new dependency releases and advisories.
     - cron: '17 6 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.parity-upload.outputs.artifact-id }}
 
     steps:
       - name: Checkout
@@ -52,14 +57,21 @@ jobs:
         run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
 
       - name: Run Parity on Parity
-        run: php parity check --format=json | tee parity-results.json
+        run: |
+          markdown_status=0
+          php parity check --format=github > parity-comment.md || markdown_status=$?
+          php parity check --format=json > parity-results.json
+          exit "$markdown_status"
 
       - name: Upload Parity results
+        id: parity-upload
         if: ${{ always() && hashFiles('parity-results.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: parity-results
-          path: parity-results.json
+          path: |
+            parity-results.json
+            parity-comment.md
           retention-days: 30
 
       - name: Build PHAR
@@ -76,3 +88,13 @@ jobs:
           chmod +x parity.phar
           test "$(./parity.phar --version)" = "Parity $(cat VERSION)"
           ./parity.phar check --format=json
+
+  parity-comment:
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.ci.outputs.artifact-id != '' }}
+    needs: ci
+    permissions:
+      pull-requests: write
+    uses: ./.github/workflows/parity-comment.yml
+    with:
+      artifact-name: parity-results
+      report-path: parity-comment.md
