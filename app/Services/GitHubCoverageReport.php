@@ -46,6 +46,17 @@ final class GitHubCoverageReport
     {
         $escaped = htmlspecialchars(str_replace(["\r", "\n"], ' ', $value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        return '<code>'.str_replace('|', '&#124;', $escaped).'</code>';
+        return '<code>'.strtr($escaped, [
+            '!' => '&#33;',
+            '*' => '&#42;',
+            '@' => '&#64;',
+            '[' => '&#91;',
+            '\\' => '&#92;',
+            ']' => '&#93;',
+            '_' => '&#95;',
+            '`' => '&#96;',
+            '|' => '&#124;',
+            '~' => '&#126;',
+        ]).'</code>';
     }
 }
