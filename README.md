@@ -44,6 +44,8 @@ parity test --no-check              # Generate reports without the follow-up che
 
 `parity check` only reads existing coverage reports. When a runner cannot emit per-test attribution, `parity test` runs each expected test file individually, normalizes its coverage artifact, writes one report per test, and runs `parity check` against those reports by default.
 
+Use `parity check --format=github > parity-comment.md` to render a GitHub pull request comment with file coverage, associated-test coverage, and failed rules. `parity test --format=github` also supports this format. Reported coverage reflects the input artifacts, which may cover a subset of the test suite. The CLI preserves the normal check exit status.
+
 `parity test` executes the configured `test.command` through the system shell. Placeholder values are escaped, but the command template is trusted executable configuration; review `parity.yaml` before running it locally or in privileged CI.
 
 ```yaml

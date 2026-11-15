@@ -86,7 +86,7 @@ XML);
 coverage_xml: clover.xml
 min_coverage: 80
 structure:
-  - name: Source
+  - name: "Source | <example>"
     paths:
       source: src
       test: tests
@@ -108,6 +108,26 @@ YAML);
 
         expect($exitCode)->toBe(0);
         expect($output)->toMatch('/Per-file min \(all tests\)\s+\|\s+50\.00%\s+\|\s+Per rule\s+\|\s+OK/');
+
+        $exitCode = Artisan::call('check', [
+            '--config' => $root.'/parity.yaml',
+            '--format' => 'github',
+            '--no-ansi' => true,
+        ]);
+        expect($exitCode)->toBe(0);
+        expect(Artisan::output())
+            ->toStartWith('## TestParity coverage')
+            ->toContain('### <code>Source &#124; &lt;example&gt;</code>')
+            ->toContain('| <code>src/Foo.php</code> | <code>tests/FooTest.php</code> | 50% |')
+            ->not->toContain('Per-file min');
+
+        unlink($root.'/tests/FooTest.php');
+        $exitCode = Artisan::call('check', [
+            '--config' => $root.'/parity.yaml',
+            '--format' => 'github',
+        ]);
+        expect($exitCode)->toBe(1);
+        expect(Artisan::output())->toContain('**Failed**', '<code>test-exists</code>');
     } finally {
         removeTemporaryParityProject($root);
     }

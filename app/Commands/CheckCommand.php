@@ -9,6 +9,7 @@ use App\Rules\RuleContext;
 use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
 use App\Services\CoverageReader;
+use App\Services\GitHubCoverageReport;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
 use App\Services\ParityJsonCoverageReader;
@@ -18,6 +19,7 @@ use App\Services\PluginLoader;
 use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
@@ -28,7 +30,7 @@ class CheckCommand extends Command
 {
     protected $signature = 'check
         {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON, Parity per-test reports, or PHPUnit XML; default is count only)}
-        {--format=table : Output format: table (default) or json}
+        {--format=table : Output format: table (default), json, or github}
         {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
     protected $description = 'Check structural parity and code coverage per file using pluggable rules; does not run tests';
@@ -57,12 +59,13 @@ class CheckCommand extends Command
         // ── Settings ───────────────────────────────────────────────
         $settings = Settings::fromConfig($config);
         $namespaceHelper = new NamespaceHelper(settings: $settings);
-        $isJson = $this->option('format') === 'json';
+        $format = $this->option('format');
+        $isTable = ! in_array($format, ['json', 'github'], true);
 
         // ── Plugins ──────────────────────────────────────────────
         $pluginLoader = new PluginLoader;
         $pluginLoader->loadAll($ruleRegistry, $projectRoot);
-        if (! $isJson) {
+        if ($isTable) {
             foreach ($pluginLoader->getWarnings() as $warning) {
                 $this->warn("Plugin: {$warning}");
             }
@@ -84,7 +87,7 @@ class CheckCommand extends Command
 
         // ── Global coverage check ─────────────────────────────────
         $minCoverageGlobal = $settings->minCoverageGlobal;
-        if (! $isJson && $minCoverageGlobal !== null && $globalPercent !== null) {
+        if ($isTable && $minCoverageGlobal !== null && $globalPercent !== null) {
             if ($globalPercent >= $minCoverageGlobal) {
                 $this->info("Global coverage: {$globalPercent}% (minimum: {$minCoverageGlobal}%).");
             } else {
@@ -134,6 +137,12 @@ class CheckCommand extends Command
 
             $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
+                if ($format === 'github') {
+                    $this->error("Source path does not exist: {$sourcePath}");
+
+                    return self::FAILURE;
+                }
+
                 $this->warn("Source path does not exist: {$sourcePath}");
 
                 continue;
@@ -141,7 +150,7 @@ class CheckCommand extends Command
 
             $jsonStructureFiles = [];
 
-            if (! $isJson) {
+            if ($isTable) {
                 $this->title("Structure: {$name}");
                 $this->line("  <fg=gray>Source: {$sourcePath}</>");
                 $this->line("  <fg=gray>Tests:  {$testPath}</>");
@@ -253,6 +262,9 @@ class CheckCommand extends Command
                         'error' => $rr['result']->error,
                     ];
                 }
+                if ($format === 'github') {
+                    $jsonFileEntry['coverage'] = $coveragePercent;
+                }
                 $jsonStructureFiles[] = $jsonFileEntry;
             }
 
@@ -263,8 +275,7 @@ class CheckCommand extends Command
                 'files' => $jsonStructureFiles,
             ];
 
-            // Build dynamic table (skip in JSON mode)
-            if (! $isJson) {
+            if ($isTable) {
                 $tableRows = $this->buildDynamicTableRows($fileRows, $resolvedRules);
                 if ($tableRows !== []) {
                     $this->newLine();
@@ -278,7 +289,14 @@ class CheckCommand extends Command
         $jsonReport['passed'] = ! $hasFailure;
 
         // ── Output ────────────────────────────────────────────────
-        if ($isJson) {
+        if ($format === 'github') {
+            $markdown = (new GitHubCoverageReport)->render($jsonReport);
+            $this->output->writeln($markdown, OutputInterface::OUTPUT_RAW);
+
+            return $hasFailure ? self::FAILURE : self::SUCCESS;
+        }
+
+        if ($format === 'json') {
             $this->line(json_encode($jsonReport, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
             return $hasFailure ? self::FAILURE : self::SUCCESS;
