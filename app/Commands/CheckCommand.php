@@ -16,6 +16,7 @@ use App\Services\ParityJsonCoverageReader;
 use App\Services\ParityPerTestCoverageReader;
 use App\Services\PhpUnitXmlCoverageReader;
 use App\Services\PluginLoader;
+use App\Services\SuiteCoverageComparison;
 use App\Settings\Settings;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
@@ -31,6 +32,7 @@ class CheckCommand extends Command
     protected $signature = 'check
         {--show-tests : Show test names that cover each file in the table (attribution formats only: Parity JSON, Parity per-test reports, or PHPUnit XML; default is count only)}
         {--format=table : Output format: table (default), json, or github}
+        {--suite-coverage= : Full-suite Clover XML for comparison in GitHub output}
         {--config= : Path to parity.yaml (default: ./parity.yaml)}';
 
     protected $description = 'Check structural parity and code coverage per file using pluggable rules; does not run tests';
@@ -71,8 +73,25 @@ class CheckCommand extends Command
             }
         }
 
+        $suiteCoverage = null;
+        if ($this->option('suite-coverage') !== null) {
+            if ($format !== 'github') {
+                $this->error('--suite-coverage requires --format=github.');
+
+                return self::FAILURE;
+            }
+
+            try {
+                $suiteCoverage = new SuiteCoverageComparison((string) $this->option('suite-coverage'), $projectRoot);
+            } catch (\InvalidArgumentException $exception) {
+                $this->error($exception->getMessage());
+
+                return self::FAILURE;
+            }
+        }
+
         // ── Coverage data ──────────────────────────────────────────
-        $coverageData = $this->loadCoverageData($settings, $projectRoot);
+        $coverageData = $this->loadCoverageData($settings, $projectRoot, $suiteCoverage !== null);
         if ($coverageData === null) {
             return self::FAILURE;
         }
@@ -264,6 +283,16 @@ class CheckCommand extends Command
                 }
                 if ($format === 'github') {
                     $jsonFileEntry['coverage'] = $coveragePercent;
+                    if ($suiteCoverage !== null) {
+                        $testIdentifier = $namespaceHelper->pathToFqcn($expectedTestRelative);
+                        $jsonFileEntry['comparison'] = $suiteCoverage->compare(
+                            $normalizedSource,
+                            $fullSourceRelative,
+                            $testIdentifier,
+                            $testExists ? ($coverageData['lineSignaturesByTest'][$testIdentifier][$fullSourceRelative] ?? null) : null,
+                            $perLine,
+                        );
+                    }
                 }
                 $jsonStructureFiles[] = $jsonFileEntry;
             }
@@ -290,7 +319,7 @@ class CheckCommand extends Command
 
         // ── Output ────────────────────────────────────────────────
         if ($format === 'github') {
-            $markdown = (new GitHubCoverageReport)->render($jsonReport);
+            $markdown = (new GitHubCoverageReport)->render($jsonReport, $suiteCoverage !== null);
             $this->output->writeln($markdown, OutputInterface::OUTPUT_RAW);
 
             return $hasFailure ? self::FAILURE : self::SUCCESS;
@@ -514,7 +543,7 @@ class CheckCommand extends Command
 
     // ── Coverage data loading ──────────────────────────────────────
 
-    private function loadCoverageData(Settings $settings, string $projectRoot): ?array
+    private function loadCoverageData(Settings $settings, string $projectRoot, bool $compareSuite): ?array
     {
         $coverageCandidates = $settings->coveragePaths;
         $minCoverageGlobal = $settings->minCoverageGlobal;
@@ -548,6 +577,7 @@ class CheckCommand extends Command
         }
 
         $coverageMap = [];
+        $lineSignaturesByTest = [];
         $testsByFile = [];
         $lineCoverage = [];
         $totalExecutable = [];
@@ -555,7 +585,8 @@ class CheckCommand extends Command
 
         if ($coveragePath !== null && is_dir($coveragePath) && is_file($coveragePath.'/index.json')) {
             $reader = new ParityPerTestCoverageReader;
-            $result = $reader->read($coveragePath, $projectRoot);
+            $result = $reader->read($coveragePath, $projectRoot, $compareSuite);
+            $lineSignaturesByTest = $result['lineSignaturesByTest'] ?? [];
             $coverageMap = $result['coverage'];
             $testsByFile = $result['testsByFile'];
             $lineCoverage = $result['lineCoverage'] ?? [];
@@ -585,7 +616,7 @@ class CheckCommand extends Command
             $globalPercent = $minCoverageGlobal !== null ? $coverageReader->readGlobalCoverage($coveragePath) : null;
         }
 
-        return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage');
+        return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage', 'lineSignaturesByTest');
     }
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void

@@ -24,6 +24,7 @@ class TestCommand extends Command
     protected $signature = 'test
         {--config= : Path to parity.yaml (default: ./parity.yaml)}
         {--format=table : Output format passed to parity check: table (default), json, or github}
+        {--suite-coverage= : Forward full-suite Clover XML to the GitHub coverage report}
         {--output= : Directory for parity per-test reports (default: test.reports or .parity/per-test)}
         {--timeout= : Maximum seconds for each test process (default: test.timeout or 300)}
         {--show-tests : Forward --show-tests to parity check}
@@ -33,6 +34,12 @@ class TestCommand extends Command
 
     public function handle(): int
     {
+        if ($this->option('suite-coverage') !== null && ($this->option('no-check') || $this->option('format') !== 'github')) {
+            $this->error('--suite-coverage requires the GitHub-format check.');
+
+            return self::FAILURE;
+        }
+
         $configOption = $this->option('config');
         $projectRoot = $configOption
             ? $this->resolveProjectRootFromConfig((string) $configOption)
@@ -319,6 +326,9 @@ class TestCommand extends Command
                 '--config' => $tempConfigPath,
                 '--format' => (string) $this->option('format'),
             ];
+            if ($this->option('suite-coverage') !== null) {
+                $arguments['--suite-coverage'] = $this->option('suite-coverage');
+            }
             if ((bool) $this->option('show-tests')) {
                 $arguments['--show-tests'] = true;
             }
