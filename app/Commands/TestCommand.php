@@ -24,7 +24,7 @@ class TestCommand extends Command
     protected $signature = 'test
         {--config= : Path to parity.yaml (default: ./parity.yaml)}
         {--format=table : Output format passed to parity check: table (default), json, or github}
-        {--suite-coverage= : Forward full-suite Clover XML to the GitHub coverage report}
+        {--suite-coverage= : Forward full-suite Clover XML to the JSON or GitHub coverage report}
         {--output= : Directory for parity per-test reports (default: test.reports or .parity/per-test)}
         {--timeout= : Maximum seconds for each test process (default: test.timeout or 300)}
         {--show-tests : Forward --show-tests to parity check}
@@ -34,8 +34,11 @@ class TestCommand extends Command
 
     public function handle(): int
     {
-        if ($this->option('suite-coverage') !== null && ($this->option('no-check') || $this->option('format') !== 'github')) {
-            $this->error('--suite-coverage requires the GitHub-format check.');
+        $format = $this->option('format');
+        $hasSuiteCoverage = $this->option('suite-coverage') !== null;
+        $writesComparisonJson = $format === 'json' && $hasSuiteCoverage;
+        if ($hasSuiteCoverage && ($this->option('no-check') || ! in_array($format, ['json', 'github'], true))) {
+            $this->error('--suite-coverage requires a JSON- or GitHub-format check.');
 
             return self::FAILURE;
         }
@@ -86,6 +89,12 @@ class TestCommand extends Command
         $tests = $this->discoverExpectedTests($config, $settings, $namespaceHelper, $projectRoot);
 
         if ($tests === []) {
+            if ($writesComparisonJson) {
+                $this->error('No expected tests discovered from the configured structures.');
+
+                return self::FAILURE;
+            }
+
             $this->warn('No expected tests discovered from the configured structures.');
 
             return self::SUCCESS;
@@ -199,7 +208,7 @@ class TestCommand extends Command
 
                 return self::FAILURE;
             }
-            if ($warning !== null) {
+            if ($warning !== null && ! $writesComparisonJson) {
                 $this->warn($warning);
             }
 
