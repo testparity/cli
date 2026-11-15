@@ -56,12 +56,22 @@ jobs:
       - name: Run Pest
         run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
 
-      - name: Run Parity on Parity
+      - name: Run TestParity
+        id: parity-report
+        uses: testparity/actions@10454fb309cc104296ec001fade186d9330abe65 # v1.1.0
+        with:
+          post-on-pr: 'false'
+          mode: check
+          cli: ./parity
+
+      - name: Stage TestParity reports
+        id: stage-parity
+        if: ${{ !cancelled() && steps.parity-report.outputs.report-directory != '' }}
+        env:
+          REPORT_DIRECTORY: ${{ steps.parity-report.outputs.report-directory }}
         run: |
-          markdown_status=0
-          php parity check --format=github > parity-comment.md || markdown_status=$?
-          php parity check --format=json > parity-results.json
-          exit "$markdown_status"
+          cp "$REPORT_DIRECTORY/report.md" parity-comment.md
+          cp "$REPORT_DIRECTORY/report.json" parity-results.json
 
       - name: Upload Parity results
         id: parity-upload
@@ -94,7 +104,7 @@ jobs:
     needs: ci
     permissions:
       pull-requests: write
-    uses: ./.github/workflows/parity-comment.yml
+    uses: testparity/actions/.github/workflows/parity-comment.yml@10454fb309cc104296ec001fade186d9330abe65 # v1.1.0
     with:
       artifact-name: parity-results
       report-path: parity-comment.md
