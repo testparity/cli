@@ -30,9 +30,11 @@ final class GitHubCoverageReport
 
             foreach ($structure['files'] as $file) {
                 $failedRules = array_keys(array_filter($file['rules'], static fn (array $rule): bool => ! $rule['passed']));
-                $result = $failedRules === []
-                    ? 'Passed'
-                    : 'Failed · '.implode(', ', array_map($this->code(...), $failedRules));
+                $result = $file['passed'] ? 'Passed' : 'Failed';
+                if ($failedRules !== []) {
+                    $result .= ($file['passed'] ? ' with warnings · ' : ' · ')
+                        .implode(', ', array_map($this->code(...), $failedRules));
+                }
                 $matched = $file['rules']['matched-coverage']['value'] ?? '—';
                 $lines[] = '| '.$this->code($file['source']).' | '.$this->code($file['test'])
                     .' | '.$file['coverage'].'% | '.$this->code($matched).' | '.$result.' |';

@@ -137,6 +137,12 @@ class CheckCommand extends Command
 
             $sourceDir = $projectRoot.'/'.trim($sourcePath, '/');
             if (! is_dir($sourceDir)) {
+                if ($format === 'github') {
+                    $this->error("Source path does not exist: {$sourcePath}");
+
+                    return self::FAILURE;
+                }
+
                 $this->warn("Source path does not exist: {$sourcePath}");
 
                 continue;
