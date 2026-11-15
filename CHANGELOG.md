@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GitHub coverage reports can compare a full-suite Clover report with the exact associated test and show the gap in percentage points.
+
 ## [1.3.0] - 2026-11-15
 
 ### Added

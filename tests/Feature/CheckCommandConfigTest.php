@@ -211,3 +211,71 @@ YAML);
         removeTemporaryParityProject($root);
     }
 });
+
+it('compares full-suite and exact associated-test line coverage in GitHub output', function () {
+    $root = createTemporaryParityProject('suite-comparison');
+    mkdir($root.'/src');
+    mkdir($root.'/tests');
+    mkdir($root.'/per-test/reports', 0777, true);
+    file_put_contents($root.'/src/Foo.php', '<?php');
+    file_put_contents($root.'/tests/FooTest.php', '<?php');
+    file_put_contents($root.'/suite.xml', <<<'XML'
+<coverage><project><file name="src/Foo.php">
+    <line num="1" type="stmt" count="1"/>
+    <line num="2" type="stmt" count="1"/>
+    <line num="3" type="stmt" count="0"/>
+</file></project></coverage>
+XML);
+    file_put_contents($root.'/parity.yaml', <<<'YAML'
+coverage_xml: per-test
+structure:
+  - name: Example
+    paths:
+      source: src
+      test: tests
+YAML);
+    $report = static fn (string $test, array $covered, array $executable = [1, 2, 3]): string => json_encode([
+        'version' => 1,
+        'test' => $test,
+        'files' => [[
+            'path' => 'src/Foo.php',
+            'totalExecutableLines' => count($executable),
+            'coveredLines' => $covered,
+            'executableLines' => $executable,
+        ]],
+    ], JSON_THROW_ON_ERROR);
+    $test = 'Tests\\FooTest';
+    $similar = 'Tests\\OtherFooTest';
+    file_put_contents($root.'/per-test/index.json', json_encode([
+        'version' => 1,
+        'kind' => 'parity-per-test-coverage',
+        'reports' => [
+            ['test' => $test, 'path' => 'reports/foo.json'],
+            ['test' => $similar, 'path' => 'reports/other.json'],
+        ],
+    ], JSON_THROW_ON_ERROR));
+    file_put_contents($root.'/per-test/reports/foo.json', $report($test, [1]));
+    file_put_contents($root.'/per-test/reports/other.json', $report($similar, [2]));
+
+    try {
+        $arguments = ['--config' => $root.'/parity.yaml', '--format' => 'github', '--suite-coverage' => 'suite.xml'];
+        Artisan::call('check', $arguments);
+        expect(Artisan::output())
+            ->toContain('| Full suite | Associated test only | Gap |')
+            ->toContain('| 66.67% | 33.33% | 33.33 pp |');
+
+        file_put_contents($root.'/per-test/reports/foo.json', $report($test, [1], [1, 2, 4]));
+        Artisan::call('check', $arguments);
+        expect(Artisan::output())->toContain('| 66.67% | — | — |');
+
+        file_put_contents($root.'/per-test/reports/foo.json', $report($test, []));
+        Artisan::call('check', $arguments);
+        expect(Artisan::output())->toContain('| 66.67% | 0% | 66.67 pp |');
+
+        $arguments['--suite-coverage'] = 'missing.xml';
+        expect(Artisan::call('check', $arguments))->toBe(1);
+        expect(Artisan::output())->toContain('No file-level coverage data');
+    } finally {
+        removeTemporaryParityProject($root);
+    }
+});

@@ -19,11 +19,12 @@ class ParityPerTestCoverageReader
      *     totalExecutable: array<string, int>,
      *     executableLines?: array<string, list<int>>,
      *     reportedTests?: list<string>,
+     *     lineSignaturesByTest?: array<string, array<string, string>>,
      *     complete?: bool,
      *     globalPercent: float|null
      * }
      */
-    public function read(string $dirPath, ?string $projectRoot = null): array
+    public function read(string $dirPath, ?string $projectRoot = null, bool $compareSuite = false): array
     {
         $empty = ['coverage' => [], 'testsByFile' => [], 'lineCoverage' => [], 'totalExecutable' => [], 'globalPercent' => null];
         $indexPath = rtrim($dirPath, '/\\').'/index.json';
@@ -50,6 +51,7 @@ class ParityPerTestCoverageReader
         $totalExecutable = [];
         $executableByPath = [];
         $incompletePaths = [];
+        $lineSignaturesByTest = [];
         $reportedTests = [];
         $validReports = 0;
         $root = $projectRoot !== null ? $this->normalizePath($projectRoot) : null;
@@ -135,6 +137,10 @@ class ParityPerTestCoverageReader
                     && count(array_unique($lines)) === $executable
                     && array_diff($coveredLines, $lines) === [];
 
+                if ($compareSuite && $hasCompleteLineList) {
+                    $lineSignaturesByTest[$testName][$relativePath] = SuiteCoverageComparison::lineSignature($lines);
+                }
+
                 foreach ($keys as $key) {
                     if ($hasCompleteLineList) {
                         $executableByPath[$key] ??= [];
@@ -182,6 +188,7 @@ class ParityPerTestCoverageReader
                 'array_keys',
                 array_diff_key($executableByPath, $incompletePaths)
             ),
+            'lineSignaturesByTest' => $lineSignaturesByTest,
             'reportedTests' => array_keys($reportedTests),
             'complete' => $validReports > 0 && $validReports === count($index['reports']),
             'globalPercent' => $globalPercent,
