@@ -11,6 +11,10 @@ final class PhpInterfaceDeclarations
 {
     public static function isOnlyInterfaces(string $path): bool
     {
+        if (! is_file($path)) {
+            return false;
+        }
+
         $source = @file_get_contents($path);
         if ($source === false) {
             return false;

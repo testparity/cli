@@ -309,6 +309,7 @@ it('omits interface-only files without inferred tests and still checks mapped or
               test: tests
             file_map:
               Mapped.php: ContractTest.php
+            rules: []
         YAML);
 
     try {
