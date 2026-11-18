@@ -13,6 +13,8 @@ Structural parity and code coverage validation for any project. Parity ensures a
 
 Global coverage answers "did the test suite touch enough code?" Parity answers "did the test that owns this file cover enough of this file?"
 
+[![advertisement](https://ads.servead.net/i/5e12ead2-0000-806d-85c8-0a8e8ffba7ea.svg)](https://ads.servead.net/c/5e12ead2-0000-806d-85c8-0a8e8ffba7ea)
+
 ## Install
 
 ```bash
