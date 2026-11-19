@@ -121,6 +121,34 @@ XML);
         expect($reader->readGlobalCoverage($this->tempDir.'/invalid.xml'))->toBeNull();
     }
 
+    public function test_strict_executable_evidence_rejects_malformed_clover_and_cobertura_files(): void
+    {
+        $path = $this->tempDir.'/strict.xml';
+        $cases = [
+            '<file name="src/Foo.php"><line num="2bad" count="1"/></file>',
+            '<file name="src/Foo.php"><line num="2" count="1bad"/></file>',
+            '<file name="src/Foo.php"><line count="1"/></file>',
+            '<file name="src/Foo.php"><line num="2" count="1"/><line num="2" count="0"/></file>',
+            '<class filename="src/Foo.php"><lines><line number="2bad" hits="1"/></lines></class>',
+            '<class filename="src/Foo.php"><lines><line number="2" hits="1bad"/></lines></class>',
+            '<class filename="src/Foo.php"><lines><line hits="1"/></lines></class>',
+            '<class filename="src/Foo.php"><lines><line number="2" hits="1"/><line number="2" hits="0"/></lines></class>',
+        ];
+        foreach ($cases as $file) {
+            file_put_contents($path, '<coverage>'.$file.'</coverage>');
+            expect((new CoverageReader)->readExecutableLines($path, $this->tempDir, true)['executableLines'])->toBe([]);
+        }
+        foreach ([
+            '<file name="src/Foo.php"><line num="2" count="1"/><line num="3" count="0"/></file>',
+            '<class filename="src/Foo.php"><lines><line number="2" hits="1"/><line number="3" hits="0"/></lines></class>',
+        ] as $file) {
+            file_put_contents($path, '<coverage>'.$file.'</coverage>');
+            $result = (new CoverageReader)->readExecutableLines($path, $this->tempDir, true);
+            expect($result['executableLines']['src/Foo.php'])->toBe([2, 3]);
+            expect($result['coveredLines']['src/Foo.php'])->toBe([2]);
+        }
+    }
+
     private function cloverXml(string $fileName, int $statements = 4, int $coveredStatements = 2): string
     {
         return <<<XML

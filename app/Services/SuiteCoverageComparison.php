@@ -11,7 +11,7 @@ final class SuiteCoverageComparison
     public function __construct(string $path, string $projectRoot)
     {
         $absolute = str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
-        $this->suite = (new CoverageReader)->readExecutableLines($absolute ? $path : $projectRoot.'/'.$path, $projectRoot);
+        $this->suite = (new CoverageReader)->readExecutableLines($absolute ? $path : $projectRoot.'/'.$path, $projectRoot, true);
 
         if ($this->suite['executableLines'] === []) {
             throw new \InvalidArgumentException('No file-level coverage data found in --suite-coverage. Supply the full-suite Clover XML report.');
@@ -21,6 +21,19 @@ final class SuiteCoverageComparison
     public function hasExecutableLines(string $absolutePath, string $relativePath): bool
     {
         return $this->executableLines($absolutePath, $relativePath) !== [];
+    }
+
+    /** Complete a native XML hit-only list using an explicitly supplied full-suite report. */
+    public function nativeExecutableLines(string $absolutePath, string $relativePath, int $total, array $observed): ?array
+    {
+        $executable = $this->suite['executableLines'][$absolutePath] ?? $this->suite['executableLines'][$relativePath] ?? null;
+        $covered = $this->suite['coveredLines'][$absolutePath] ?? $this->suite['coveredLines'][$relativePath] ?? [];
+        if ($executable === null || count($executable) !== $total
+            || array_diff($observed, $executable) !== [] || array_diff($observed, $covered) !== []) {
+            return null;
+        }
+
+        return $executable;
     }
 
     /** @param list<int> $lines */

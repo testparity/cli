@@ -131,7 +131,13 @@ class ParityPerTestCoverageReader
                 }
 
                 $lines = $file['executableLines'] ?? null;
-                $hasCompleteLineList = is_array($lines)
+                $rawCovered = $file['coveredLines'] ?? null;
+                $hasCompleteLineList = is_int($file['totalExecutableLines'] ?? null)
+                    && $file['totalExecutableLines'] >= 0
+                    && is_array($rawCovered)
+                    && count(array_filter($rawCovered, fn ($line): bool => is_int($line) && $line > 0)) === count($rawCovered)
+                    && count(array_unique($rawCovered)) === count($rawCovered)
+                    && is_array($lines)
                     && count($lines) === $executable
                     && count(array_filter($lines, fn ($line): bool => is_int($line) && $line > 0)) === $executable
                     && count(array_unique($lines)) === $executable

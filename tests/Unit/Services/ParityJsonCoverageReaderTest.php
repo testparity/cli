@@ -65,6 +65,41 @@ class ParityJsonCoverageReaderTest extends TestCase
         expect($reader->read($this->tempDir.'/invalid.json'))->toBe($empty);
     }
 
+    public function test_exposes_only_complete_explicit_attribution_as_executable_evidence(): void
+    {
+        $path = $this->tempDir.'/coverage.json';
+        $valid = [
+            'path' => 'src/Price.ts',
+            'totalExecutableLines' => 2,
+            'lines' => [
+                ['line' => 1, 'coveredBy' => ['PriceTest::formats_price']],
+                ['line' => 2, 'coveredBy' => []],
+            ],
+        ];
+        $cases = [
+            [$valid, [1, 2]],
+            [array_replace($valid, ['totalExecutableLines' => 'garbage']), null],
+            [array_replace($valid, ['totalExecutableLines' => 2.5]), null],
+            [array_replace($valid, ['totalExecutableLines' => '2']), null],
+            [array_replace($valid, ['lines' => [['line' => 1], ['line' => 2, 'coveredBy' => []]]]), null],
+            [array_replace($valid, ['lines' => [['line' => 1, 'coveredBy' => 'invalid'], ['line' => 2, 'coveredBy' => []]]]), null],
+            [array_replace($valid, ['lines' => [['line' => 1, 'coveredBy' => [42]], ['line' => 2, 'coveredBy' => []]]]), null],
+            [array_replace($valid, ['lines' => [['line' => 1, 'coveredBy' => []], ['line' => 1, 'coveredBy' => []]]]), null],
+            [array_replace($valid, ['lines' => [['line' => 0, 'coveredBy' => []], ['line' => 2, 'coveredBy' => []]]]), null],
+            [array_replace($valid, ['totalExecutableLines' => 0, 'lines' => []]), []],
+        ];
+        foreach ($cases as [$file, $expected]) {
+            file_put_contents($path, json_encode(['files' => [$file]]));
+            $result = (new ParityJsonCoverageReader)->read($path, $this->tempDir.'/project');
+            if ($expected === null) {
+                expect($result['executableLines'])->not->toHaveKey('src/Price.ts');
+            } else {
+                expect($result['executableLines']['src/Price.ts'])->toBe($expected);
+                expect($result['executableLines'][$this->tempDir.'/project/src/Price.ts'])->toBe($expected);
+            }
+        }
+    }
+
     private function removeDirectory(string $path): void
     {
         if (! is_dir($path)) {

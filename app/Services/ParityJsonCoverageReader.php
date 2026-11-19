@@ -69,12 +69,18 @@ class ParityJsonCoverageReader
             $lines = $file['lines'] ?? null;
             if (is_array($lines)) {
                 $numbers = [];
+                $validAttribution = ! array_key_exists('totalExecutableLines', $file)
+                    || (is_int($file['totalExecutableLines']) && $file['totalExecutableLines'] >= 0);
                 foreach ($lines as $line) {
+                    $attribution = is_array($line) ? ($line['coveredBy'] ?? null) : null;
+                    if (! is_array($attribution) || count(array_filter($attribution, 'is_string')) !== count($attribution)) {
+                        $validAttribution = false;
+                    }
                     if (is_array($line) && is_int($line['line'] ?? null) && $line['line'] > 0) {
                         $numbers[$line['line']] = true;
                     }
                 }
-                if (count($numbers) === count($lines) && count($numbers) === $executable) {
+                if ($validAttribution && count($numbers) === count($lines) && count($numbers) === $executable) {
                     $this->store($executableByPath, $relativePath, array_keys($numbers), $root);
                 }
             }
