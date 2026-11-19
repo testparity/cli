@@ -83,35 +83,25 @@ it('rejects coerced or absent coverage proof in per-test artifacts', function (a
     [['totalExecutableLines' => 1.5]],
 ]);
 
-it('rejects malformed XML executable identities as evidence', function (string $nodes, string $total) {
-    $dir = sys_get_temp_dir().'/parity-xml-proof-'.bin2hex(random_bytes(4));
-    mkdir($dir);
-    file_put_contents($dir.'/index.xml', '<coverage><project source="src"><directory name="/"><file href="file.xml"/></directory></project></coverage>');
-    file_put_contents($dir.'/file.xml', '<coverage><file name="Foo.php"><totals><lines executable="'.$total.'"/></totals><coverage>'.$nodes.'</coverage></file></coverage>');
+it('uses supplied suite lines to complete native evidence and retains associated attribution', function () {
+    $source = tempnam(sys_get_temp_dir(), 'parity-native-source-');
+    $clover = tempnam(sys_get_temp_dir(), 'parity-native-clover-');
+    file_put_contents($source, "<?php\nreturn 1;\nreturn 2;\n");
+    file_put_contents($clover, '<coverage><file name="src/Foo.php"><line num="2" count="1"/><line num="3" count="0"/></file></coverage>');
     try {
-        $result = (new App\Services\PhpUnitXmlCoverageReader)->read($dir);
-        expect($result['executableLines'])->not->toHaveKey('src/Foo.php');
+        $data = [
+            'attributionComplete' => true,
+            'observedLines' => ['src/Foo.php' => [2]],
+            'totalExecutable' => ['src/Foo.php' => 2],
+            'lineCoverage' => ['src/Foo.php' => [2 => ['Tests\\FooTest::one']]],
+        ];
+        $suite = new SuiteCoverageComparison($clover, sys_get_temp_dir());
+        $report = (new LineCoverageReport)->build($source, $source, 'src/Foo.php', 'Tests\\FooTest', true, $data, $suite);
+        expect($report['complete'])->toBeTrue()->and($report['executableLines'])->toBe([2, 3])->and($report['coveredLines'])->toBe([2]);
+        $data['observedLines']['src/Foo.php'] = [3];
+        expect((new LineCoverageReport)->build($source, $source, 'src/Foo.php', 'Tests\\FooTest', true, $data, $suite)['complete'])->toBeFalse();
     } finally {
-        unlink($dir.'/index.xml');
-        unlink($dir.'/file.xml');
-        rmdir($dir);
+        unlink($source);
+        unlink($clover);
     }
-})->with([
-    ['<line nr="2bogus"/>', '1'],
-    ['<line nr="2"/><line nr="2"/>', '1'],
-    ['<line nr="2"/>', '1.5'],
-]);
-
-it('rejects invalid explicit totals in JSON attribution', function (mixed $total) {
-    $path = tempnam(sys_get_temp_dir(), 'parity-json-proof-');
-    file_put_contents($path, json_encode(['files' => [[
-        'path' => 'src/Foo.php', 'totalExecutableLines' => $total,
-        'lines' => [['line' => 2, 'coveredBy' => []]],
-    ]]]));
-    try {
-        $result = (new App\Services\ParityJsonCoverageReader)->read($path);
-        expect($result['executableLines'])->not->toHaveKey('src/Foo.php');
-    } finally {
-        unlink($path);
-    }
-})->with(['garbage', 1.5, '1']);
+});

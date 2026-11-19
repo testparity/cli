@@ -77,8 +77,8 @@ class CheckCommand extends Command
 
         $suiteCoverage = null;
         if ($this->option('suite-coverage') !== null) {
-            if ($format !== 'github') {
-                $this->error('--suite-coverage requires --format=github.');
+            if (! in_array($format, ['github', 'json'], true)) {
+                $this->error('--suite-coverage requires --format=github or --format=json.');
 
                 return self::FAILURE;
             }
@@ -287,7 +287,7 @@ class CheckCommand extends Command
                 if ($format === 'json') {
                     $jsonFileEntry['lineCoverage'] = (new LineCoverageReport)->build(
                         $sourceAbsolute, $normalizedSource, $fullSourceRelative,
-                        $namespaceHelper->pathToFqcn($expectedTestRelative), $testExists, $coverageData,
+                        $namespaceHelper->pathToFqcn($expectedTestRelative), $testExists, $coverageData, $suiteCoverage,
                     );
                 }
                 foreach ($ruleResults as $rr) {
@@ -635,8 +635,9 @@ class CheckCommand extends Command
         $executableLines = $result['executableLines'] ?? [];
         $attributionComplete = $hasAttributionCoverage && ($result['complete'] ?? true);
         $reportedTests = $result['reportedTests'] ?? null;
+        $observedLines = $result['observedLines'] ?? [];
 
-        return compact('executableLines', 'attributionComplete', 'reportedTests', 'coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage', 'lineSignaturesByTest');
+        return compact('observedLines', 'executableLines', 'attributionComplete', 'reportedTests', 'coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage', 'lineSignaturesByTest');
     }
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void

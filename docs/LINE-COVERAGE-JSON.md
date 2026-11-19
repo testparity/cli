@@ -20,3 +20,13 @@ Line numbers are one-based, unique, sorted integers. `coveredLines` counts only 
 `complete: true` requires a readable source file, full executable line metadata within its bounds, and test-attributed coverage. Per-test collections also require valid reports, the associated report when its test file exists, and matching executable line signatures. Complete zero-executable files have empty executable/covered arrays.
 
 When evidence is unavailable or inconsistent, `complete` is false and `reason` explains why. Source hashes are included when readable, but executable/covered arrays are omitted and must not be interpreted as zero coverage. Aggregate Clover coverage alone cannot prove associated coverage. Percentages never substitute for line evidence. Completeness describes the supplied artifacts; callers must generate fresh coverage against the source checkout before comparing branches.
+
+## Native PHPUnit XML
+
+PHPUnit XML often lists only hit lines, so partial coverage cannot establish the full executable universe by itself. Supply fresh full-suite Clover from the same checkout explicitly:
+
+```sh
+parity check --format=json --suite-coverage=coverage.xml
+```
+
+For native XML only, this can complete the executable line list when its count matches the native total and every observed native line is executable and covered in the suite. Source line bounds are still validated. Missing or inconsistent evidence remains unavailable. The suite does not supply associated hits: `coveredLines` continues to use only native attribution to the exact associated test. Rule results and percentages remain unchanged. This JSON flag adds line evidence for baseline gates; it does not add hosted dashboard or gap-comparison fields.

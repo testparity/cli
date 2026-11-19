@@ -179,6 +179,23 @@ jobs:
           chmod +x parity.phar
           test "$(./parity.phar --version)" = "Parity $(cat VERSION)"
           ./parity.phar check --format=json
+          ./parity.phar check --format=json --suite-coverage=clover.xml > phar-line-evidence.json
+          php -r '
+            $report = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+            $files = array_merge(...array_map(fn ($structure) => $structure["files"], $report["structures"]));
+            if ($files === []) {
+                fwrite(STDERR, "No source files emitted by PHAR line-evidence check.\n");
+                exit(1);
+            }
+            $failed = false;
+            foreach ($files as $file) {
+                if (($file["lineCoverage"]["complete"] ?? false) !== true) {
+                    fwrite(STDERR, $file["source"].": ".($file["lineCoverage"]["reason"] ?? "Missing line evidence")."\n");
+                    $failed = true;
+                }
+            }
+            exit($failed ? 1 : 0);
+          ' phar-line-evidence.json
 
   parity-comment:
     if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.ci.outputs.artifact-id != '' }}

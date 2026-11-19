@@ -7,7 +7,7 @@ namespace App\Services;
 /** Builds source identity and exact associated-test evidence, never inferred from percentages. */
 class LineCoverageReport
 {
-    public function build(string $source, string $absolute, string $relative, string $test, bool $testExists, array $data): array
+    public function build(string $source, string $absolute, string $relative, string $test, bool $testExists, array $data, ?SuiteCoverageComparison $suite = null): array
     {
         $report = ['version' => 1, 'complete' => false];
         $contents = is_readable($source) ? file_get_contents($source) : false;
@@ -25,6 +25,10 @@ class LineCoverageReport
         }
         $executable = $data['executableLines'][$absolute] ?? $data['executableLines'][$relative] ?? null;
         $total = $data['totalExecutable'][$absolute] ?? $data['totalExecutable'][$relative] ?? 0;
+        $observed = $data['observedLines'][$absolute] ?? $data['observedLines'][$relative] ?? null;
+        if ($executable === null && $suite !== null && $observed !== null) {
+            $executable = $suite->nativeExecutableLines($absolute, $relative, $total, $observed);
+        }
         if ($executable === null || count($executable) !== $total || count(array_unique($executable)) !== count($executable)) {
             return $report + ['reason' => 'Complete executable line metadata is unavailable.'];
         }

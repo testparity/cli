@@ -23,3 +23,18 @@ XML);
         unlink($path);
     }
 });
+
+it('enriches native hit-only lists only when suite counts and covered identities agree', function () {
+    $path = tempnam(sys_get_temp_dir(), 'parity-native-suite-');
+    file_put_contents($path, '<coverage><project><file name="src/Foo.php"><line num="2" type="stmt" count="1"/><line num="3" type="stmt" count="0"/></file></project></coverage>');
+    try {
+        $comparison = new SuiteCoverageComparison($path, sys_get_temp_dir());
+        expect($comparison->nativeExecutableLines('/src/Foo.php', 'src/Foo.php', 2, [2]))->toBe([2, 3])
+            ->and($comparison->nativeExecutableLines('/src/Foo.php', 'src/Foo.php', 1, [2]))->toBeNull()
+            ->and($comparison->nativeExecutableLines('/src/Foo.php', 'src/Foo.php', 2, [3]))->toBeNull()
+            ->and($comparison->nativeExecutableLines('/src/Foo.php', 'src/Foo.php', 2, [4]))->toBeNull()
+            ->and($comparison->nativeExecutableLines('/src/Missing.php', 'src/Missing.php', 0, []))->toBeNull();
+    } finally {
+        unlink($path);
+    }
+});

@@ -35,6 +35,7 @@ class PhpUnitXmlCoverageReader
         $lineCoverage = [];
         $totalExecutable = [];
         $executableByPath = [];
+        $observedByPath = [];
         $globalPercent = null;
 
         $empty = ['coverage' => [], 'testsByFile' => [], 'lineCoverage' => [], 'totalExecutable' => [], 'globalPercent' => null];
@@ -174,6 +175,12 @@ class PhpUnitXmlCoverageReader
             $hasCompleteLineList = $validLineMetadata && $linesEl !== null
                 && preg_match('/^(0|[1-9][0-9]*)$/D', $linesEl->getAttribute('executable')) === 1
                 && count($executableLines) === $executable;
+            $hasValidObservedLines = $validLineMetadata && $linesEl !== null
+                && preg_match('/^(0|[1-9][0-9]*)$/D', $linesEl->getAttribute('executable')) === 1
+                && count($executableLines) <= $executable;
+            if ($hasValidObservedLines) {
+                $observedByPath[$relativePath] = array_keys($executableLines);
+            }
             if ($hasCompleteLineList) {
                 $executableByPath[$relativePath] = array_keys($executableLines);
             }
@@ -184,6 +191,9 @@ class PhpUnitXmlCoverageReader
                 $testsByFile[$normalized] = $coveredBy;
                 $lineCoverage[$normalized] = $perLine;
                 $totalExecutable[$normalized] = $executable;
+                if ($hasValidObservedLines) {
+                    $observedByPath[$normalized] = $observedByPath[$relativePath];
+                }
                 if ($hasCompleteLineList) {
                     $executableByPath[$normalized] = $executableByPath[$relativePath];
                 }
@@ -196,6 +206,7 @@ class PhpUnitXmlCoverageReader
             'lineCoverage' => $lineCoverage,
             'totalExecutable' => $totalExecutable,
             'executableLines' => $executableByPath,
+            'observedLines' => $observedByPath,
             'globalPercent' => $globalPercent,
         ];
     }

@@ -147,7 +147,7 @@ class CoverageReader
      *     executableLines: array<string, list<int>>
      * }
      */
-    public function readExecutableLines(string $coverageXmlPath, ?string $projectRoot = null): array
+    public function readExecutableLines(string $coverageXmlPath, ?string $projectRoot = null, bool $strict = false): array
     {
         if (! is_file($coverageXmlPath)) {
             return ['coveredLines' => [], 'totalExecutable' => [], 'executableLines' => []];
@@ -182,6 +182,7 @@ class CoverageReader
 
             $executableLines = [];
             $covered = [];
+            $valid = true;
             $lineNodes = $xpath->query('line', $file);
             foreach ($lineNodes as $lineNode) {
                 // Istanbul-based reporters (c8, nyc, Jest, Vitest V8) tag statement lines that contain a
@@ -193,9 +194,18 @@ class CoverageReader
 
                 $num = $lineNode->getAttribute('num');
                 if ($num === '') {
+                    $valid = ! $strict;
+
                     continue;
                 }
 
+                if ($strict && (preg_match('/^[1-9][0-9]*$/D', $num) !== 1
+                    || preg_match('/^(0|[1-9][0-9]*)$/D', $lineNode->getAttribute('count')) !== 1
+                    || isset($executableLines[(int) $num]))) {
+                    $valid = false;
+
+                    continue;
+                }
                 $line = (int) $num;
                 $executableLines[$line] = true;
                 if ((int) $lineNode->getAttribute('count') > 0) {
@@ -203,6 +213,9 @@ class CoverageReader
                 }
             }
 
+            if (! $valid) {
+                continue;
+            }
             $this->storeExecutableCoverage($coveredLines, $totalExecutable, $executableByPath, $name, array_keys($covered), array_keys($executableLines), $root);
         }
 
@@ -215,13 +228,23 @@ class CoverageReader
 
             $executableLines = [];
             $covered = [];
+            $valid = true;
             $lineNodes = $xpath->query('lines/line', $class);
             foreach ($lineNodes as $lineNode) {
                 $num = $lineNode->getAttribute('number') ?: $lineNode->getAttribute('nr');
                 if ($num === '') {
+                    $valid = ! $strict;
+
                     continue;
                 }
 
+                if ($strict && (preg_match('/^[1-9][0-9]*$/D', $num) !== 1
+                    || preg_match('/^(0|[1-9][0-9]*)$/D', $lineNode->getAttribute('hits')) !== 1
+                    || isset($executableLines[(int) $num]))) {
+                    $valid = false;
+
+                    continue;
+                }
                 $line = (int) $num;
                 $executableLines[$line] = true;
                 if ((int) $lineNode->getAttribute('hits') > 0) {
@@ -229,6 +252,9 @@ class CoverageReader
                 }
             }
 
+            if (! $valid) {
+                continue;
+            }
             $this->storeExecutableCoverage($coveredLines, $totalExecutable, $executableByPath, $filename, array_keys($covered), array_keys($executableLines), $root);
         }
 

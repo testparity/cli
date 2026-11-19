@@ -43,6 +43,9 @@ class PhpUnitXmlCoverageReaderTest extends TestCase
         ]);
         expect($result['lineCoverage']['app/Foo.php'][10])->toBe(['Tests\\Unit\\FooTest::test_it_works']);
         expect($result['totalExecutable']['app/Foo.php'])->toBe(4);
+        expect($result['observedLines']['app/Foo.php'])->toBe([10, 11]);
+        expect($result['observedLines'][$absolutePath])->toBe([10, 11]);
+        expect($result['executableLines'])->not->toHaveKey('app/Foo.php');
     }
 
     public function test_returns_empty_result_when_index_is_missing_or_invalid(): void
@@ -66,6 +69,31 @@ class PhpUnitXmlCoverageReaderTest extends TestCase
             'totalExecutable' => [],
             'globalPercent' => null,
         ]);
+    }
+
+    public function test_requires_valid_unique_lines_and_integer_totals_for_executable_evidence(): void
+    {
+        file_put_contents($this->tempDir.'/coverage/index.xml', $this->indexXml($this->tempDir.'/project/app'));
+        $cases = [
+            ['<line nr="2"><covered by="FooTest::works"/></line><line nr="3"/>', '2', [2, 3]],
+            ['<line nr="2bogus"/>', '1', null],
+            ['<line/>', '1', null],
+            ['<line nr="2"/><line nr="2"/>', '1', null],
+            ['<line nr="2"/>', '1.5', null],
+            ['<line nr="2"/>', 'garbage', null],
+            ['<line nr="2"/>', '2', null],
+            ['', '0', []],
+        ];
+        foreach ($cases as [$nodes, $total, $expected]) {
+            file_put_contents($this->tempDir.'/coverage/Foo.php.xml', '<coverage><file name="Foo.php"><totals><lines executable="'.$total.'"/></totals><coverage>'.$nodes.'</coverage></file></coverage>');
+            $result = (new PhpUnitXmlCoverageReader)->read($this->tempDir.'/coverage', $this->tempDir.'/project');
+            if ($expected === null) {
+                expect($result['executableLines'])->not->toHaveKey('app/Foo.php');
+            } else {
+                expect($result['executableLines']['app/Foo.php'])->toBe($expected);
+                expect($result['executableLines'][$this->tempDir.'/project/app/Foo.php'])->toBe($expected);
+            }
+        }
     }
 
     private function indexXml(string $source): string
