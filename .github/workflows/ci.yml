@@ -57,6 +57,23 @@ jobs:
       - name: Run Pest
         run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
 
+      - name: Prepare stable TestParity pilot
+        run: |
+          curl --fail --location --silent --show-error https://github.com/testparity/cli/releases/download/v1.5.0/parity.phar -o .parity-pilot.phar
+          echo '161d175ecf30f011749bed5bdfc93d3e72d3a0e533a2ec55d2544553f88b05c7  .parity-pilot.phar' | sha256sum --check
+          # Keep the PHAR beside the project to avoid loading its own Composer classes twice.
+          cat > .parity-pilot <<'SH'
+          #!/bin/sh
+          for argument in "$@"; do
+            if [ "$argument" = '--format=json' ]; then
+              set -- "$@" --suite-coverage=clover.xml
+              break
+            fi
+          done
+          exec php "$GITHUB_WORKSPACE/.parity-pilot.phar" "$@"
+          SH
+          chmod +x .parity-pilot
+
       - name: Run TestParity
         id: parity-baseline
         uses: testparity/actions@6e04af13516ab4d699ef4f6c2a77649db3780ad7 # line regression gate
@@ -64,6 +81,7 @@ jobs:
           post-on-pr: 'false'
           fail-on-findings: 'false'
           mode: check
+          cli: ./.parity-pilot
           suite-coverage: clover.xml
 
       - name: Stage base report
@@ -132,6 +150,23 @@ jobs:
           name: testparity-testparity-cli-base
           path: ${{ github.workspace }}/.parity-baseline
 
+      - name: Prepare stable TestParity pilot
+        run: |
+          curl --fail --location --silent --show-error https://github.com/testparity/cli/releases/download/v1.5.0/parity.phar -o .parity-pilot.phar
+          echo '161d175ecf30f011749bed5bdfc93d3e72d3a0e533a2ec55d2544553f88b05c7  .parity-pilot.phar' | sha256sum --check
+          # Keep the PHAR beside the project to avoid loading its own Composer classes twice.
+          cat > .parity-pilot <<'SH'
+          #!/bin/sh
+          for argument in "$@"; do
+            if [ "$argument" = '--format=json' ]; then
+              set -- "$@" --suite-coverage=clover.xml
+              break
+            fi
+          done
+          exec php "$GITHUB_WORKSPACE/.parity-pilot.phar" "$@"
+          SH
+          chmod +x .parity-pilot
+
       - name: Run TestParity
         id: parity-report
         uses: testparity/actions@6e04af13516ab4d699ef4f6c2a77649db3780ad7 # line regression gate
@@ -139,6 +174,7 @@ jobs:
           post-on-pr: 'false'
           baseline-report: ${{ github.event_name == 'pull_request' && '.parity-baseline/report.json' || '' }}
           mode: check
+          cli: ./.parity-pilot
           suite-coverage: clover.xml
 
       - name: Stage TestParity reports
