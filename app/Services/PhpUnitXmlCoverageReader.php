@@ -127,16 +127,22 @@ class PhpUnitXmlCoverageReader
             $coveredBy = [];
             $perLine = [];
             $executableLines = [];
+            $validLineMetadata = true;
             $lineNodes = $fileXpath->query('//p:coverage/p:line');
             if ($lineNodes->length === 0) {
                 $lineNodes = $fileXpath->query("//*[local-name()='coverage']/*[local-name()='line']");
             }
             foreach ($lineNodes as $lineNode) {
                 $nr = $lineNode->getAttribute('nr');
-                if ($nr === '') {
+                if (! preg_match('/^[1-9][0-9]*$/D', $nr)) {
+                    $validLineMetadata = false;
+
                     continue;
                 }
                 $lineNr = (int) $nr;
+                if (isset($executableLines[$lineNr])) {
+                    $validLineMetadata = false;
+                }
                 if ($lineNr > 0) {
                     $executableLines[$lineNr] = true;
                 }
@@ -165,7 +171,8 @@ class PhpUnitXmlCoverageReader
             $totalExecutable[$relativePath] = $executable;
 
             // Some XML reports list only hit lines. The total establishes whether the list is complete.
-            $hasCompleteLineList = $linesEl !== null && $linesEl->hasAttribute('executable')
+            $hasCompleteLineList = $validLineMetadata && $linesEl !== null
+                && preg_match('/^(0|[1-9][0-9]*)$/D', $linesEl->getAttribute('executable')) === 1
                 && count($executableLines) === $executable;
             if ($hasCompleteLineList) {
                 $executableByPath[$relativePath] = array_keys($executableLines);

@@ -342,3 +342,40 @@ it('omits interface-only files without inferred tests and still checks mapped or
         removeTemporaryParityProject($root);
     }
 });
+
+it('includes line evidence from attribution artifacts in JSON without changing existing fields', function () {
+    $root = createTemporaryParityProject('line-evidence');
+    mkdir($root.'/src');
+    mkdir($root.'/tests');
+    file_put_contents($root.'/src/Foo.php', "<?php\nreturn 1;\nreturn 2;\n");
+    file_put_contents($root.'/tests/FooTest.php', '<?php');
+    file_put_contents($root.'/parity.yaml', "coverage_xml: coverage.json\nstructure:\n  - name: Source\n    paths:\n      source: src\n      test: tests\n    rules: []\n");
+    $artifact = ['files' => [[
+        'path' => 'src/Foo.php',
+        'totalExecutableLines' => 2,
+        'lines' => [
+            ['line' => 2, 'coveredBy' => ['Tests\\FooTest::one']],
+            ['line' => 3, 'coveredBy' => ['Tests\\OtherFooTest::two']],
+        ],
+    ]]];
+    try {
+        file_put_contents($root.'/coverage.json', json_encode($artifact));
+        Artisan::call('check', ['--config' => $root.'/parity.yaml', '--format' => 'json']);
+        $file = json_decode(Artisan::output(), true)['structures'][0]['files'][0];
+        expect($file['source'])->toBe('src/Foo.php')->and($file)->toHaveKeys(['test', 'passed', 'rules'])
+            ->and($file['lineCoverage']['complete'])->toBeTrue()
+            ->and($file['lineCoverage']['coveredLines'])->toBe([2]);
+        $artifact['files'][0]['lines'][0]['coveredBy'] = 'invalid';
+        file_put_contents($root.'/coverage.json', json_encode($artifact));
+        Artisan::call('check', ['--config' => $root.'/parity.yaml', '--format' => 'json']);
+        $file = json_decode(Artisan::output(), true)['structures'][0]['files'][0];
+        expect($file['lineCoverage']['complete'])->toBeFalse()->and($file['lineCoverage'])->toHaveKey('reason');
+        unset($artifact['files'][0]['lines'][0]['coveredBy']);
+        file_put_contents($root.'/coverage.json', json_encode($artifact));
+        Artisan::call('check', ['--config' => $root.'/parity.yaml', '--format' => 'json']);
+        $file = json_decode(Artisan::output(), true)['structures'][0]['files'][0];
+        expect($file['lineCoverage']['complete'])->toBeFalse();
+    } finally {
+        removeTemporaryParityProject($root);
+    }
+});

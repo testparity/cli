@@ -10,6 +10,7 @@ use App\Rules\RuleInterface;
 use App\Rules\RuleRegistry;
 use App\Services\CoverageReader;
 use App\Services\GitHubCoverageReport;
+use App\Services\LineCoverageReport;
 use App\Services\NamespaceHelper;
 use App\Services\ParityChecker;
 use App\Services\ParityJsonCoverageReader;
@@ -92,7 +93,7 @@ class CheckCommand extends Command
         }
 
         // ── Coverage data ──────────────────────────────────────────
-        $coverageData = $this->loadCoverageData($settings, $projectRoot, $suiteCoverage !== null);
+        $coverageData = $this->loadCoverageData($settings, $projectRoot, $suiteCoverage !== null || $format === 'json');
         if ($coverageData === null) {
             return self::FAILURE;
         }
@@ -283,6 +284,12 @@ class CheckCommand extends Command
                     'passed' => $allPassed,
                     'rules' => [],
                 ];
+                if ($format === 'json') {
+                    $jsonFileEntry['lineCoverage'] = (new LineCoverageReport)->build(
+                        $sourceAbsolute, $normalizedSource, $fullSourceRelative,
+                        $namespaceHelper->pathToFqcn($expectedTestRelative), $testExists, $coverageData,
+                    );
+                }
                 foreach ($ruleResults as $rr) {
                     $jsonFileEntry['rules'][$rr['rule']->name()] = [
                         'passed' => $rr['result']->passed,
@@ -625,7 +632,11 @@ class CheckCommand extends Command
             $globalPercent = $minCoverageGlobal !== null ? $coverageReader->readGlobalCoverage($coveragePath) : null;
         }
 
-        return compact('coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage', 'lineSignaturesByTest');
+        $executableLines = $result['executableLines'] ?? [];
+        $attributionComplete = $hasAttributionCoverage && ($result['complete'] ?? true);
+        $reportedTests = $result['reportedTests'] ?? null;
+
+        return compact('executableLines', 'attributionComplete', 'reportedTests', 'coverageMap', 'testsByFile', 'lineCoverage', 'totalExecutable', 'globalPercent', 'hasAttributionCoverage', 'lineSignaturesByTest');
     }
 
     private function warnTestsNotMatchingAnyStructure(array $testsByFile, array $expectedTestPaths, NamespaceHelper $namespaceHelper): void

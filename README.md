@@ -46,6 +46,8 @@ parity test --no-check              # Generate reports without the follow-up che
 
 `parity check` only reads existing coverage reports. When a runner cannot emit per-test attribution, `parity test` runs each expected test file individually, normalizes its coverage artifact, writes one report per test, and runs `parity check` against those reports by default.
 
+`parity check --format=json` adds a versioned `lineCoverage` object to each source file. See [line evidence](docs/LINE-COVERAGE-JSON.md) for completeness and source identity semantics used by baseline comparisons.
+
 Use `parity check --format=github > parity-comment.md` to render a GitHub pull request comment with file coverage, associated-test coverage, and failed rules. `parity test --format=github` also supports this format. Reported coverage reflects the input artifacts, which may cover a subset of the test suite. The CLI preserves the normal check exit status.
 
 For a side-by-side comparison, generate full-suite Clover XML and pass it to either GitHub-format command. Use the same checkout, coverage filter, and driver for both runs.

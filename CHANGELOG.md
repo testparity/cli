@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- JSON check reports include versioned executable and exact associated-test line evidence, source identity hashes, and explicit evidence availability for branch comparisons.
+
 ## [1.4.1] - 2026-11-15
 
 ### Fixed
