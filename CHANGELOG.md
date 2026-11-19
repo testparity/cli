@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-19
+
 ### Added
 - JSON check reports include versioned executable and exact associated-test line evidence, source identity hashes, and explicit evidence availability for branch comparisons. Native PHPUnit XML hit-only lists can be completed with explicit full-suite `--suite-coverage` metadata.
 
