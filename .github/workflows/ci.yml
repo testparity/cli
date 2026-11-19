@@ -59,12 +59,12 @@ jobs:
 
       - name: Run TestParity
         id: parity-baseline
-        uses: testparity/actions@30a4e2de4295df73868d1d184ff704f0dad3de2e # baseline regression gate
+        uses: testparity/actions@6e04af13516ab4d699ef4f6c2a77649db3780ad7 # line regression gate
         with:
           post-on-pr: 'false'
           fail-on-findings: 'false'
           mode: check
-          cli: ./parity
+          suite-coverage: clover.xml
 
       - name: Stage base report
         env:
@@ -134,12 +134,12 @@ jobs:
 
       - name: Run TestParity
         id: parity-report
-        uses: testparity/actions@30a4e2de4295df73868d1d184ff704f0dad3de2e # baseline regression gate
+        uses: testparity/actions@6e04af13516ab4d699ef4f6c2a77649db3780ad7 # line regression gate
         with:
           post-on-pr: 'false'
           baseline-report: ${{ github.event_name == 'pull_request' && '.parity-baseline/report.json' || '' }}
           mode: check
-          cli: ./parity
+          suite-coverage: clover.xml
 
       - name: Stage TestParity reports
         id: stage-parity
@@ -202,7 +202,7 @@ jobs:
     needs: ci
     permissions:
       pull-requests: write
-    uses: testparity/actions/.github/workflows/parity-comment.yml@10454fb309cc104296ec001fade186d9330abe65 # v1.1.0
+    uses: testparity/actions/.github/workflows/parity-comment.yml@6e04af13516ab4d699ef4f6c2a77649db3780ad7 # line regression gate
     with:
       artifact-name: parity-results
       report-path: parity-comment.md
