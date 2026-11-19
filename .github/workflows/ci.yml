@@ -15,7 +15,76 @@ permissions:
   contents: read
 
 jobs:
+  baseline:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, fileinfo, json
+          coverage: xdebug
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+            vendor
+          key: composer-php-8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-php-8.4-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Validate dependencies
+        run: |
+          composer validate --strict
+          composer audit --locked --no-interaction
+
+      - name: Run Pint
+        run: ./vendor/bin/pint --test
+
+      - name: Run Pest
+        run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
+
+      - name: Run TestParity
+        id: parity-baseline
+        uses: testparity/actions@30a4e2de4295df73868d1d184ff704f0dad3de2e # baseline regression gate
+        with:
+          post-on-pr: 'false'
+          fail-on-findings: 'false'
+          mode: check
+          cli: ./parity
+
+      - name: Stage base report
+        env:
+          REPORT_DIRECTORY: ${{ steps.parity-baseline.outputs.report-directory }}
+        run: |
+          test -s "$REPORT_DIRECTORY/report.json"
+          mkdir -p "$RUNNER_TEMP/testparity-base"
+          cp "$REPORT_DIRECTORY/report.json" "$RUNNER_TEMP/testparity-base/report.json"
+
+      - name: Preserve base report
+        uses: actions/upload-artifact@v4
+        with:
+          name: testparity-testparity-cli-base
+          path: ${{ runner.temp }}/testparity-base/report.json
+          if-no-files-found: error
+          retention-days: 14
+
   ci:
+    needs: baseline
+    if: ${{ !cancelled() && (needs.baseline.result == 'success' || needs.baseline.result == 'skipped') }}
     name: CI
     runs-on: ubuntu-latest
     outputs:
@@ -56,11 +125,19 @@ jobs:
       - name: Run Pest
         run: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-xml=coverage-xml --coverage-clover=clover.xml --colors=never
 
+      - name: Download base report
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: testparity-testparity-cli-base
+          path: ${{ github.workspace }}/.parity-baseline
+
       - name: Run TestParity
         id: parity-report
-        uses: testparity/actions@10454fb309cc104296ec001fade186d9330abe65 # v1.1.0
+        uses: testparity/actions@30a4e2de4295df73868d1d184ff704f0dad3de2e # baseline regression gate
         with:
           post-on-pr: 'false'
+          baseline-report: ${{ github.event_name == 'pull_request' && '.parity-baseline/report.json' || '' }}
           mode: check
           cli: ./parity
 
@@ -72,6 +149,9 @@ jobs:
         run: |
           cp "$REPORT_DIRECTORY/report.md" parity-comment.md
           cp "$REPORT_DIRECTORY/report.json" parity-results.json
+          if [ -f "$REPORT_DIRECTORY/baseline-comparison.json" ]; then
+            cp "$REPORT_DIRECTORY/baseline-comparison.json" baseline-comparison.json
+          fi
 
       - name: Upload Parity results
         id: parity-upload
@@ -80,6 +160,7 @@ jobs:
         with:
           name: parity-results
           path: |
+            baseline-comparison.json
             parity-results.json
             parity-comment.md
           retention-days: 30
